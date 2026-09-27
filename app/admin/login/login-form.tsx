@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -19,18 +19,26 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Ensure form clears any browser-injected credentials on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setEmail("");
+      setPassword("");
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
     setPending(true);
     setError(null);
 
     const result = await signIn("credentials", {
-      email: String(form.get("email") ?? "")
-        .trim()
-        .toLowerCase(),
-      password: String(form.get("password") ?? ""),
+      email: email.trim().toLowerCase(),
+      password: password,
       redirect: false,
     });
 
@@ -70,7 +78,29 @@ export function LoginForm() {
             </p>
           </div>
 
-          <form className="mt-8 space-y-5" onSubmit={onSubmit}>
+          <form
+            className="mt-8 space-y-5"
+            onSubmit={onSubmit}
+            autoComplete="off"
+          >
+            {/* Decoy fields to prevent browser password managers from auto-populating */}
+            <input
+              type="text"
+              name="fake_user"
+              tabIndex={-1}
+              autoComplete="off"
+              className="hidden"
+              aria-hidden="true"
+            />
+            <input
+              type="password"
+              name="fake_pass"
+              tabIndex={-1}
+              autoComplete="new-password"
+              className="hidden"
+              aria-hidden="true"
+            />
+
             {error ? (
               <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm text-rose-300">
                 <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
@@ -91,7 +121,9 @@ export function LoginForm() {
                   name="email"
                   type="email"
                   required
-                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
                   placeholder="admin@devlooperstudio.com"
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/80 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
                 />
@@ -111,7 +143,9 @@ export function LoginForm() {
                   name="password"
                   type={showPassword ? "text" : "password"}
                   required
-                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
                   placeholder="••••••••••••"
                   className="w-full rounded-xl border border-slate-700/80 bg-slate-900/80 py-2.5 pl-10 pr-11 text-sm text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
                 />

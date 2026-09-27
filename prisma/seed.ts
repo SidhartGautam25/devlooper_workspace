@@ -126,44 +126,67 @@ async function main() {
     });
   }
 
-  const tgDelegate = (prisma as any).taskGroup;
-  if (tgDelegate) {
-    const tgCount = await tgDelegate.count();
-    if (tgCount === 0) {
-      const defaultLang = await prisma.language.findFirst({
-        where: { name: "English" },
-      });
-      const defaultReg = await prisma.region.findFirst({
-        where: { name: "North America" },
-      });
-      const defaultBType = await prisma.businessType.findFirst({
-        where: { name: "Technology & Software" },
-      });
+  const roleCount = await prisma.employeeRole.count();
+  if (roleCount === 0) {
+    await prisma.employeeRole.createMany({
+      data: [
+        { name: "Sales Representative" },
+        { name: "Account Executive" },
+        { name: "Customer Support" },
+        { name: "Technical Lead" },
+        { name: "Lead Qualifier" },
+      ],
+      skipDuplicates: true,
+    });
+  }
 
-      await tgDelegate.createMany({
-        data: [
-          {
-            name: "US Inbound Tech Lead",
-            description:
-              "Follow up with technology lead from website inbound funnel. Focus on SaaS roadmap and pricing requirements.",
-            priority: TaskPriority.HIGH,
-            businessTypeId: defaultBType?.id ?? null,
-            languageId: defaultLang?.id ?? null,
-            regionId: defaultReg?.id ?? null,
-            assignedToId: employee.id,
-          },
-          {
-            name: "Real Estate Client Onboarding",
-            description:
-              "Introductory qualification and listing requirements discussion.",
-            priority: TaskPriority.MEDIUM,
-            languageId: defaultLang?.id ?? null,
-            assignedToId: employee.id,
-          },
-        ],
-        skipDuplicates: true,
+  if (!employee.employeeRoleId) {
+    const defaultRole = await prisma.employeeRole.findFirst({
+      where: { name: "Sales Representative" },
+    });
+    if (defaultRole) {
+      await prisma.user.update({
+        where: { id: employee.id },
+        data: { employeeRoleId: defaultRole.id },
       });
     }
+  }
+
+  const tgCount = await prisma.taskGroup.count();
+  if (tgCount === 0) {
+    const defaultLang = await prisma.language.findFirst({
+      where: { name: "English" },
+    });
+    const defaultReg = await prisma.region.findFirst({
+      where: { name: "North America" },
+    });
+    const defaultBType = await prisma.businessType.findFirst({
+      where: { name: "Technology & Software" },
+    });
+
+    await prisma.taskGroup.createMany({
+      data: [
+        {
+          name: "US Inbound Tech Lead",
+          description:
+            "Follow up with technology lead from website inbound funnel. Focus on SaaS roadmap and pricing requirements.",
+          priority: TaskPriority.HIGH,
+          businessTypeId: defaultBType?.id ?? null,
+          languageId: defaultLang?.id ?? null,
+          regionId: defaultReg?.id ?? null,
+          assignedToId: employee.id,
+        },
+        {
+          name: "Real Estate Client Onboarding",
+          description:
+            "Introductory qualification and listing requirements discussion.",
+          priority: TaskPriority.MEDIUM,
+          languageId: defaultLang?.id ?? null,
+          assignedToId: employee.id,
+        },
+      ],
+      skipDuplicates: true,
+    });
   }
 
   const taskCount = await prisma.task.count();

@@ -43,6 +43,16 @@ export type Region = {
   };
 };
 
+export type EmployeeRole = {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _count?: {
+    employees: number;
+  };
+};
+
 export type Employee = {
   id: string;
   employeeId?: string | null;
@@ -54,6 +64,8 @@ export type Employee = {
   language?: { id: string; name: string } | null;
   regionId?: string | null;
   region?: { id: string; name: string } | null;
+  employeeRoleId?: string | null;
+  employeeRole?: { id: string; name: string } | null;
   createdAt: string;
   _count: {
     assignedTasks: number;

@@ -21,9 +21,35 @@ export function useCreateEmployee() {
       phone?: string;
       languageId?: string | null;
       regionId?: string | null;
+      employeeRoleId?: string | null;
     }) =>
       apiFetch("/api/employees", {
         method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+      void queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useUpdateEmployee() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string;
+      name?: string;
+      phone?: string | null;
+      languageId?: string | null;
+      regionId?: string | null;
+      employeeRoleId?: string | null;
+    }) =>
+      apiFetch(`/api/employees/${id}`, {
+        method: "PATCH",
         body: JSON.stringify(data),
       }),
     onSuccess: () => {

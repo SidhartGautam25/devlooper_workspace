@@ -24,6 +24,7 @@ export const EmployeeController = {
         phone?: string;
         languageId?: string | null;
         regionId?: string | null;
+        employeeRoleId?: string | null;
       };
       const employee = await UserService.createEmployee(currentUser, {
         name: body.name ?? "",
@@ -32,8 +33,30 @@ export const EmployeeController = {
         phone: body.phone,
         languageId: body.languageId,
         regionId: body.regionId,
+        employeeRoleId: body.employeeRoleId,
       });
       return jsonSuccess(employee, 201);
+    } catch (error) {
+      return handleRouteError(error);
+    }
+  },
+
+  async update(request: Request, employeeId: string) {
+    try {
+      const currentUser = requireCurrentUser(await auth());
+      const body = (await request.json()) as {
+        name?: string;
+        phone?: string | null;
+        languageId?: string | null;
+        regionId?: string | null;
+        employeeRoleId?: string | null;
+      };
+      const updated = await UserService.updateEmployee(
+        currentUser,
+        employeeId,
+        body,
+      );
+      return jsonSuccess(updated);
     } catch (error) {
       return handleRouteError(error);
     }

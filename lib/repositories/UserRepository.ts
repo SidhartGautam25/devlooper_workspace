@@ -28,6 +28,10 @@ export const UserRepository = {
         region: {
           select: { id: true, name: true },
         },
+        employeeRoleId: true,
+        employeeRole: {
+          select: { id: true, name: true },
+        },
         createdAt: true,
         _count: {
           select: {
@@ -72,6 +76,13 @@ export const UserRepository = {
     return prisma.user.update({
       where: { id },
       data: { isActive },
+    });
+  },
+
+  update(id: string, data: Prisma.UserUpdateInput) {
+    return prisma.user.update({
+      where: { id },
+      data,
     });
   },
 };

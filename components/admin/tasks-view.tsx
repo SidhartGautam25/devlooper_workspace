@@ -6,7 +6,6 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  FileText,
   Globe,
   Layers,
   Mail,
@@ -15,11 +14,9 @@ import {
   PhoneCall,
   Plus,
   Search,
+  ShieldCheck,
   Tag,
   Trash2,
-  UserCheck,
-  UserPlus,
-  X,
   XCircle,
 } from "lucide-react";
 import { useAdminUser } from "@/components/admin/admin-user-context";
@@ -41,6 +38,7 @@ import {
   useDeleteRegion,
   useRegions,
 } from "@/lib/hooks/use-regions";
+import { useCreateRole, useDeleteRole, useRoles } from "@/lib/hooks/use-roles";
 import {
   useCreateTaskGroup,
   useDeleteTaskGroup,
@@ -55,7 +53,6 @@ import {
 } from "@/lib/hooks/use-tasks";
 import type {
   Task,
-  TaskGroup,
   TaskPriority,
   TaskResult,
   TaskStatus,
@@ -101,6 +98,7 @@ export function TasksView() {
   const { data: languages = [] } = useLanguages();
   const { data: regions = [] } = useRegions();
   const { data: taskGroups = [] } = useTaskGroups();
+  const { data: roles = [] } = useRoles();
 
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -115,6 +113,9 @@ export function TasksView() {
 
   const createRegion = useCreateRegion();
   const deleteRegion = useDeleteRegion();
+
+  const createRole = useCreateRole();
+  const deleteRole = useDeleteRole();
 
   const createTaskGroup = useCreateTaskGroup();
   const deleteTaskGroup = useDeleteTaskGroup();
@@ -136,7 +137,7 @@ export function TasksView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [manageOptionsOpen, setManageOptionsOpen] = useState(false);
   const [manageOptionsTab, setManageOptionsTab] = useState<
-    "btypes" | "languages" | "regions" | "taskgroups"
+    "btypes" | "languages" | "regions" | "roles" | "taskgroups"
   >("btypes");
   const [logCallTask, setLogCallTask] = useState<Task | null>(null);
   const [reassignTask, setReassignTask] = useState<Task | null>(null);
@@ -145,6 +146,7 @@ export function TasksView() {
   const [newBTypeName, setNewBTypeName] = useState("");
   const [newLangName, setNewLangName] = useState("");
   const [newRegName, setNewRegName] = useState("");
+  const [newRoleName, setNewRoleName] = useState("");
 
   // New task group creation states
   const [newTgName, setNewTgName] = useState("");
@@ -1093,6 +1095,21 @@ export function TasksView() {
                 type="button"
                 onClick={() => {
                   setError(null);
+                  setManageOptionsTab("roles");
+                }}
+                className={`flex items-center gap-1.5 border-b-2 px-3.5 py-2 text-xs font-semibold transition ${
+                  manageOptionsTab === "roles"
+                    ? "border-emerald-500 text-emerald-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Roles ({roles.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
                   setManageOptionsTab("taskgroups");
                 }}
                 className={`flex items-center gap-1.5 border-b-2 px-3.5 py-2 text-xs font-semibold transition ${
@@ -1396,7 +1413,100 @@ export function TasksView() {
               </div>
             ) : null}
 
-            {/* TAB 4: Task Groups */}
+            {/* TAB 4: Roles */}
+            {manageOptionsTab === "roles" ? (
+              <div className="space-y-4">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError(null);
+                    if (!newRoleName.trim()) return;
+
+                    try {
+                      await createRole.mutateAsync({
+                        name: newRoleName.trim(),
+                      });
+                      setNewRoleName("");
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to create role",
+                      );
+                    }
+                  }}
+                  className="space-y-2"
+                >
+                  <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                    Add New Role
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newRoleName}
+                      onChange={(e) => setNewRoleName(e.target.value)}
+                      placeholder="e.g. Sales Representative, Technical Support"
+                      className={inputClass}
+                      required
+                    />
+                    <button
+                      type="submit"
+                      disabled={createRole.isPending}
+                      className="shrink-0 self-end rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-60 transition"
+                    >
+                      {createRole.isPending ? "Adding…" : "Add"}
+                    </button>
+                  </div>
+                </form>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
+                    Available Roles ({roles.length})
+                  </p>
+                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-800 rounded-xl border border-slate-800 bg-slate-900/60">
+                    {roles.map((r) => (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between p-3 text-sm hover:bg-slate-800/40 transition"
+                      >
+                        <div>
+                          <span className="font-medium text-white">
+                            {r.name}
+                          </span>
+                          <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300 border border-emerald-500/20">
+                            {r._count?.employees ?? 0} employees
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await deleteRole.mutateAsync(r.id);
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Failed to delete role",
+                              );
+                            }
+                          }}
+                          className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {roles.length === 0 ? (
+                      <p className="p-4 text-center text-xs text-slate-500">
+                        No roles created yet. Add one above.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* TAB 5: Task Groups */}
             {manageOptionsTab === "taskgroups" ? (
               <div className="space-y-4">
                 <form
