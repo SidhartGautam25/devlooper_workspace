@@ -1,10 +1,6 @@
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
-import {
-  BadRequestError,
-  ForbiddenError,
-  NotFoundError,
-} from "@/lib/errors";
+import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { UserRepository } from "@/lib/repositories/UserRepository";
 import type { CurrentUser } from "@/lib/types";
 
@@ -35,7 +31,14 @@ export const UserService = {
 
   async createEmployee(
     currentUser: CurrentUser,
-    data: { name: string; email: string; password: string; phone?: string },
+    data: {
+      name: string;
+      email: string;
+      password: string;
+      phone?: string;
+      languageId?: string | null;
+      regionId?: string | null;
+    },
   ) {
     assertSuperuser(currentUser);
 
@@ -43,6 +46,8 @@ export const UserService = {
     const email = data.email?.trim().toLowerCase();
     const password = data.password ?? "";
     const phone = data.phone?.trim() || null;
+    const languageId = data.languageId?.trim() || null;
+    const regionId = data.regionId?.trim() || null;
 
     if (!name || !email || !password) {
       throw new BadRequestError("Name, email, and password are required");
@@ -57,19 +62,25 @@ export const UserService = {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const employee = await UserRepository.create({
+      employeeId: crypto.randomUUID(),
       name,
       email,
       phone,
       passwordHash,
       role: Role.EMPLOYEE,
       isActive: true,
+      ...(languageId ? { language: { connect: { id: languageId } } } : {}),
+      ...(regionId ? { region: { connect: { id: regionId } } } : {}),
     });
 
     return {
       id: employee.id,
+      employeeId: employee.employeeId,
       name: employee.name,
       email: employee.email,
       phone: employee.phone,
+      languageId: employee.languageId,
+      regionId: employee.regionId,
       isActive: employee.isActive,
       role: employee.role,
     };

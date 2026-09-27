@@ -10,6 +10,8 @@ import {
   useResetEmployeePassword,
   useToggleEmployeeStatus,
 } from "@/lib/hooks/use-employees";
+import { useLanguages } from "@/lib/hooks/use-languages";
+import { useRegions } from "@/lib/hooks/use-regions";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-400";
@@ -17,6 +19,8 @@ const inputClass =
 export function EmployeesView() {
   const user = useAdminUser();
   const { data: employees = [], isLoading } = useEmployees();
+  const { data: languages = [] } = useLanguages();
+  const { data: regions = [] } = useRegions();
   const createEmployee = useCreateEmployee();
   const resetPassword = useResetEmployeePassword();
   const toggleStatus = useToggleEmployeeStatus();
@@ -58,9 +62,10 @@ export function EmployeesView() {
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-slate-800 text-slate-400">
             <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
+              <th className="px-4 py-3 font-medium">Name & ID</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Phone</th>
+              <th className="px-4 py-3 font-medium">Language & Region</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Tasks</th>
               <th className="px-4 py-3 font-medium">Actions</th>
@@ -69,16 +74,44 @@ export function EmployeesView() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td className="px-4 py-6 text-slate-400" colSpan={6}>
+                <td className="px-4 py-6 text-slate-400" colSpan={7}>
                   Loading employees…
                 </td>
               </tr>
             ) : null}
             {employees.map((employee) => (
               <tr key={employee.id} className="border-b border-slate-800/80">
-                <td className="px-4 py-3 text-white">{employee.name}</td>
+                <td className="px-4 py-3">
+                  <p className="text-white font-medium">{employee.name}</p>
+                  {employee.employeeId ? (
+                    <p
+                      className="font-mono text-[11px] text-slate-400 select-all"
+                      title={employee.employeeId}
+                    >
+                      ID: {employee.employeeId.slice(0, 8)}...
+                    </p>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3 text-slate-300">{employee.email}</td>
-                <td className="px-4 py-3 text-slate-300">{employee.phone ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-300">
+                  {employee.phone ?? "—"}
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <div className="flex flex-wrap gap-1.5">
+                    {employee.language ? (
+                      <span className="rounded-md bg-sky-500/10 px-2 py-0.5 text-sky-300 border border-sky-500/20">
+                        {employee.language.name}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500">—</span>
+                    )}
+                    {employee.region ? (
+                      <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-amber-300 border border-amber-500/20">
+                        {employee.region.name}
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <Badge value={employee.isActive ? "ACTIVE" : "INACTIVE"} />
                 </td>
@@ -126,15 +159,23 @@ export function EmployeesView() {
               const form = new FormData(event.currentTarget);
               setError(null);
               try {
+                const langVal = form.get("languageId");
+                const regVal = form.get("regionId");
                 await createEmployee.mutateAsync({
                   name: String(form.get("name") ?? ""),
                   email: String(form.get("email") ?? ""),
                   phone: String(form.get("phone") ?? ""),
                   password: String(form.get("password") ?? ""),
+                  languageId: langVal ? String(langVal) : null,
+                  regionId: regVal ? String(regVal) : null,
                 });
                 setCreateOpen(false);
               } catch (err) {
-                setError(err instanceof Error ? err.message : "Unable to create employee");
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Unable to create employee",
+                );
               }
             }}
           >
@@ -144,15 +185,50 @@ export function EmployeesView() {
             </label>
             <label className="block text-sm text-slate-300">
               Email
-              <input name="email" type="email" required className={inputClass} />
+              <input
+                name="email"
+                type="email"
+                required
+                className={inputClass}
+              />
             </label>
             <label className="block text-sm text-slate-300">
               Phone
               <input name="phone" className={inputClass} />
             </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-sm text-slate-300">
+                Language
+                <select name="languageId" className={inputClass}>
+                  <option value="">-- None --</option>
+                  {languages.map((lang) => (
+                    <option key={lang.id} value={lang.id}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm text-slate-300">
+                Region
+                <select name="regionId" className={inputClass}>
+                  <option value="">-- None --</option>
+                  {regions.map((reg) => (
+                    <option key={reg.id} value={reg.id}>
+                      {reg.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <label className="block text-sm text-slate-300">
               Initial password
-              <input name="password" type="password" required minLength={8} className={inputClass} />
+              <input
+                name="password"
+                type="password"
+                required
+                minLength={8}
+                className={inputClass}
+              />
             </label>
             {error ? <p className="text-sm text-rose-400">{error}</p> : null}
             <button
@@ -181,13 +257,23 @@ export function EmployeesView() {
                 });
                 setResetId(null);
               } catch (err) {
-                setError(err instanceof Error ? err.message : "Unable to reset password");
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "Unable to reset password",
+                );
               }
             }}
           >
             <label className="block text-sm text-slate-300">
               New password
-              <input name="password" type="password" required minLength={8} className={inputClass} />
+              <input
+                name="password"
+                type="password"
+                required
+                minLength={8}
+                className={inputClass}
+              />
             </label>
             {error ? <p className="text-sm text-rose-400">{error}</p> : null}
             <button

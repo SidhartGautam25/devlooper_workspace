@@ -83,6 +83,36 @@ async function main() {
     });
   }
 
+  const langCount = await prisma.language.count();
+  if (langCount === 0) {
+    await prisma.language.createMany({
+      data: [
+        { name: "English" },
+        { name: "Spanish" },
+        { name: "Hindi" },
+        { name: "French" },
+        { name: "German" },
+        { name: "Arabic" },
+      ],
+      skipDuplicates: true,
+    });
+  }
+
+  const regionCount = await prisma.region.count();
+  if (regionCount === 0) {
+    await prisma.region.createMany({
+      data: [
+        { name: "North America" },
+        { name: "Europe" },
+        { name: "Asia Pacific" },
+        { name: "Middle East" },
+        { name: "Latin America" },
+        { name: "South Asia" },
+      ],
+      skipDuplicates: true,
+    });
+  }
+
   const taskCount = await prisma.task.count();
   if (taskCount === 0) {
     await prisma.task.createMany({

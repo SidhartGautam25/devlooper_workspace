@@ -22,12 +22,16 @@ export const EmployeeController = {
         email?: string;
         password?: string;
         phone?: string;
+        languageId?: string | null;
+        regionId?: string | null;
       };
       const employee = await UserService.createEmployee(currentUser, {
         name: body.name ?? "",
         email: body.email ?? "",
         password: body.password ?? "",
         phone: body.phone,
+        languageId: body.languageId,
+        regionId: body.regionId,
       });
       return jsonSuccess(employee, 201);
     } catch (error) {

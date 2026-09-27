@@ -27,6 +27,8 @@ export function useCreateTask() {
       dueDate?: string | null;
       businessName?: string | null;
       businessTypeId?: string | null;
+      languageId?: string | null;
+      regionId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;
@@ -59,6 +61,8 @@ export function useUpdateTask() {
       status?: TaskStatus;
       businessName?: string | null;
       businessTypeId?: string | null;
+      languageId?: string | null;
+      regionId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;

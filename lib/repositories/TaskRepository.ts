@@ -11,6 +11,12 @@ const taskInclude = {
   businessType: {
     select: { id: true, name: true },
   },
+  language: {
+    select: { id: true, name: true },
+  },
+  region: {
+    select: { id: true, name: true },
+  },
 } satisfies Prisma.TaskInclude;
 
 export const TaskRepository = {

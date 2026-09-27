@@ -15,10 +15,19 @@ export const UserRepository = {
       where: { role: "EMPLOYEE" },
       select: {
         id: true,
+        employeeId: true,
         name: true,
         email: true,
         phone: true,
         isActive: true,
+        languageId: true,
+        language: {
+          select: { id: true, name: true },
+        },
+        regionId: true,
+        region: {
+          select: { id: true, name: true },
+        },
         createdAt: true,
         _count: {
           select: {

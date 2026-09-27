@@ -7,7 +7,9 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  Globe,
   Mail,
+  MapPin,
   Phone,
   PhoneCall,
   Plus,
@@ -28,6 +30,16 @@ import {
   useDeleteBusinessType,
 } from "@/lib/hooks/use-business-types";
 import { useEmployees } from "@/lib/hooks/use-employees";
+import {
+  useCreateLanguage,
+  useDeleteLanguage,
+  useLanguages,
+} from "@/lib/hooks/use-languages";
+import {
+  useCreateRegion,
+  useDeleteRegion,
+  useRegions,
+} from "@/lib/hooks/use-regions";
 import {
   useCreateTask,
   useDeleteTask,
@@ -79,6 +91,8 @@ export function TasksView() {
   const { data: tasks = [], isLoading } = useTasks();
   const { data: employees = [] } = useEmployees(isSuperuser);
   const { data: businessTypes = [] } = useBusinessTypes();
+  const { data: languages = [] } = useLanguages();
+  const { data: regions = [] } = useRegions();
 
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -87,6 +101,12 @@ export function TasksView() {
 
   const createBusinessType = useCreateBusinessType();
   const deleteBusinessType = useDeleteBusinessType();
+
+  const createLanguage = useCreateLanguage();
+  const deleteLanguage = useDeleteLanguage();
+
+  const createRegion = useCreateRegion();
+  const deleteRegion = useDeleteRegion();
 
   // Filters
   const [search, setSearch] = useState("");
@@ -97,15 +117,22 @@ export function TasksView() {
   const [resultFilter, setResultFilter] =
     useState<(typeof results)[number]>("ALL");
   const [bTypeFilter, setBTypeFilter] = useState<string>("ALL");
+  const [languageFilter, setLanguageFilter] = useState<string>("ALL");
+  const [regionFilter, setRegionFilter] = useState<string>("ALL");
 
   // Modals state
   const [createOpen, setCreateOpen] = useState(false);
-  const [manageBTypesOpen, setManageBTypesOpen] = useState(false);
+  const [manageOptionsOpen, setManageOptionsOpen] = useState(false);
+  const [manageOptionsTab, setManageOptionsTab] = useState<
+    "btypes" | "languages" | "regions"
+  >("btypes");
   const [logCallTask, setLogCallTask] = useState<Task | null>(null);
   const [reassignTask, setReassignTask] = useState<Task | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newBTypeName, setNewBTypeName] = useState("");
+  const [newLangName, setNewLangName] = useState("");
+  const [newRegName, setNewRegName] = useState("");
 
   const activeEmployees = employees.filter((employee) => employee.isActive);
 
@@ -117,6 +144,10 @@ export function TasksView() {
         priorityFilter === "ALL" || task.priority === priorityFilter;
       const matchBType =
         bTypeFilter === "ALL" || task.businessTypeId === bTypeFilter;
+      const matchLanguage =
+        languageFilter === "ALL" || task.languageId === languageFilter;
+      const matchRegion =
+        regionFilter === "ALL" || task.regionId === regionFilter;
 
       let matchResult = true;
       if (resultFilter === "PENDING") {
@@ -138,13 +169,30 @@ export function TasksView() {
           task.contactEmail.toLowerCase().includes(query)) ||
         (task.businessType &&
           task.businessType.name.toLowerCase().includes(query)) ||
+        (task.language && task.language.name.toLowerCase().includes(query)) ||
+        (task.region && task.region.name.toLowerCase().includes(query)) ||
         (task.assignedTo && task.assignedTo.name.toLowerCase().includes(query));
 
       return (
-        matchStatus && matchPriority && matchBType && matchResult && matchSearch
+        matchStatus &&
+        matchPriority &&
+        matchBType &&
+        matchLanguage &&
+        matchRegion &&
+        matchResult &&
+        matchSearch
       );
     });
-  }, [bTypeFilter, priorityFilter, resultFilter, search, statusFilter, tasks]);
+  }, [
+    bTypeFilter,
+    languageFilter,
+    priorityFilter,
+    regionFilter,
+    resultFilter,
+    search,
+    statusFilter,
+    tasks,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -161,19 +209,46 @@ export function TasksView() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {isSuperuser ? (
             <>
               <button
                 type="button"
                 onClick={() => {
                   setError(null);
-                  setManageBTypesOpen(true);
+                  setManageOptionsTab("btypes");
+                  setManageOptionsOpen(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700/80 transition"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700/80 transition"
               >
-                <Tag className="h-4 w-4 text-indigo-400" />
-                Manage Business Types
+                <Tag className="h-3.5 w-3.5 text-indigo-400" />
+                Business Types
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setManageOptionsTab("languages");
+                  setManageOptionsOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700/80 transition"
+              >
+                <Globe className="h-3.5 w-3.5 text-sky-400" />
+                Languages
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setManageOptionsTab("regions");
+                  setManageOptionsOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700/80 transition"
+              >
+                <MapPin className="h-3.5 w-3.5 text-amber-400" />
+                Regions
               </button>
 
               <button
@@ -182,7 +257,7 @@ export function TasksView() {
                   setError(null);
                   setCreateOpen(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-400 transition"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-400 transition"
               >
                 <Plus className="h-4 w-4" />
                 Create Task
@@ -193,7 +268,7 @@ export function TasksView() {
       </div>
 
       {/* Filter Bar */}
-      <div className="grid gap-3 rounded-2xl border border-slate-800/80 bg-[#131B2E]/80 p-4 backdrop-blur-xl sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-2.5 rounded-2xl border border-slate-800/80 bg-[#131B2E]/80 p-3.5 backdrop-blur-xl sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7">
         {/* Search */}
         <div className="relative sm:col-span-2 lg:col-span-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
@@ -203,7 +278,7 @@ export function TasksView() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tasks, business, phone..."
+            placeholder="Search..."
             className="w-full rounded-xl border border-slate-700 bg-slate-800/90 py-2 pl-9 pr-3 text-xs text-white placeholder-slate-500 outline-none transition focus:border-indigo-400"
           />
         </div>
@@ -214,7 +289,7 @@ export function TasksView() {
           onChange={(e) =>
             setStatusFilter(e.target.value as typeof statusFilter)
           }
-          className="rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-xs text-white outline-none focus:border-indigo-400"
+          className="rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-2 text-xs text-white outline-none focus:border-indigo-400"
         >
           {statuses.map((status) => (
             <option key={status} value={status}>
@@ -229,7 +304,7 @@ export function TasksView() {
           onChange={(e) =>
             setPriorityFilter(e.target.value as typeof priorityFilter)
           }
-          className="rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-xs text-white outline-none focus:border-indigo-400"
+          className="rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-2 text-xs text-white outline-none focus:border-indigo-400"
         >
           {priorities.map((priority) => (
             <option key={priority} value={priority}>
@@ -242,12 +317,40 @@ export function TasksView() {
         <select
           value={bTypeFilter}
           onChange={(e) => setBTypeFilter(e.target.value)}
-          className="rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-xs text-white outline-none focus:border-indigo-400"
+          className="rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-2 text-xs text-white outline-none focus:border-indigo-400"
         >
           <option value="ALL">All Business Types</option>
           {businessTypes.map((bt) => (
             <option key={bt.id} value={bt.id}>
               {bt.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Language Filter */}
+        <select
+          value={languageFilter}
+          onChange={(e) => setLanguageFilter(e.target.value)}
+          className="rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-2 text-xs text-white outline-none focus:border-indigo-400"
+        >
+          <option value="ALL">All Languages</option>
+          {languages.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Region Filter */}
+        <select
+          value={regionFilter}
+          onChange={(e) => setRegionFilter(e.target.value)}
+          className="rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-2 text-xs text-white outline-none focus:border-indigo-400"
+        >
+          <option value="ALL">All Regions</option>
+          {regions.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
             </option>
           ))}
         </select>
@@ -258,7 +361,7 @@ export function TasksView() {
           onChange={(e) =>
             setResultFilter(e.target.value as typeof resultFilter)
           }
-          className="rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-xs text-white outline-none focus:border-indigo-400"
+          className="rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-2 text-xs text-white outline-none focus:border-indigo-400"
         >
           <option value="ALL">All Results</option>
           <option value="PENDING">Result: Pending</option>
@@ -306,13 +409,32 @@ export function TasksView() {
                     {/* Task & Business */}
                     <td className="px-4 py-3.5 align-top">
                       <p className="font-semibold text-white">{task.title}</p>
-                      {task.businessName || task.businessType ? (
+                      {task.businessName ||
+                      task.businessType ||
+                      task.language ||
+                      task.region ? (
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-indigo-300">
-                          <Building2 className="h-3.5 w-3.5 text-indigo-400" />
-                          <span>{task.businessName || "Business"}</span>
+                          {task.businessName ? (
+                            <span className="flex items-center gap-1 text-slate-200">
+                              <Building2 className="h-3.5 w-3.5 text-indigo-400" />
+                              {task.businessName}
+                            </span>
+                          ) : null}
                           {task.businessType ? (
                             <span className="rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium text-indigo-300 border border-indigo-500/20">
                               {task.businessType.name}
+                            </span>
+                          ) : null}
+                          {task.language ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-300 border border-sky-500/20">
+                              <Globe className="h-3 w-3" />
+                              {task.language.name}
+                            </span>
+                          ) : null}
+                          {task.region ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/20">
+                              <MapPin className="h-3 w-3" />
+                              {task.region.name}
                             </span>
                           ) : null}
                         </div>
@@ -525,6 +647,8 @@ export function TasksView() {
                   businessName: String(form.get("businessName") ?? ""),
                   businessTypeId:
                     String(form.get("businessTypeId") ?? "") || null,
+                  languageId: String(form.get("languageId") ?? "") || null,
+                  regionId: String(form.get("regionId") ?? "") || null,
                   contactPhone: String(form.get("contactPhone") ?? ""),
                   contactEmail: String(form.get("contactEmail") ?? ""),
                   contactDetail: String(form.get("contactDetail") ?? ""),
@@ -577,6 +701,37 @@ export function TasksView() {
                   {businessTypes.map((bt) => (
                     <option key={bt.id} value={bt.id}>
                       {bt.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Language & Region Grid */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                  Language
+                </label>
+                <select name="languageId" className={inputClass}>
+                  <option value="">-- Select Language (Optional) --</option>
+                  {languages.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                  Region
+                </label>
+                <select name="regionId" className={inputClass}>
+                  <option value="">-- Select Region (Optional) --</option>
+                  {regions.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
                     </option>
                   ))}
                 </select>
@@ -707,56 +862,61 @@ export function TasksView() {
         </Modal>
       ) : null}
 
-      {/* 2. Modal: Manage Business Types (Superuser) */}
-      {manageBTypesOpen ? (
+      {/* 2. Modal: Manage Options (Superuser: Business Types, Languages, Regions) */}
+      {manageOptionsOpen ? (
         <Modal
-          title="Manage Business Types"
-          onClose={() => setManageBTypesOpen(false)}
+          title="Manage Options"
+          onClose={() => setManageOptionsOpen(false)}
         >
-          <div className="space-y-5">
-            {/* Create new business type */}
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setError(null);
-                if (!newBTypeName.trim()) return;
-
-                try {
-                  await createBusinessType.mutateAsync({
-                    name: newBTypeName.trim(),
-                  });
-                  setNewBTypeName("");
-                } catch (err) {
-                  setError(
-                    err instanceof Error
-                      ? err.message
-                      : "Failed to create business type",
-                  );
-                }
-              }}
-              className="space-y-2"
-            >
-              <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
-                Add New Business Type
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newBTypeName}
-                  onChange={(e) => setNewBTypeName(e.target.value)}
-                  placeholder="e.g. Healthcare, Fintech, Real Estate"
-                  className={inputClass}
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={createBusinessType.isPending}
-                  className="shrink-0 self-end rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-60 transition"
-                >
-                  {createBusinessType.isPending ? "Adding…" : "Add"}
-                </button>
-              </div>
-            </form>
+          <div className="space-y-4">
+            {/* Tabs */}
+            <div className="flex border-b border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setManageOptionsTab("btypes");
+                }}
+                className={`flex items-center gap-1.5 border-b-2 px-3.5 py-2 text-xs font-semibold transition ${
+                  manageOptionsTab === "btypes"
+                    ? "border-indigo-500 text-indigo-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Tag className="h-3.5 w-3.5" />
+                Business Types ({businessTypes.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setManageOptionsTab("languages");
+                }}
+                className={`flex items-center gap-1.5 border-b-2 px-3.5 py-2 text-xs font-semibold transition ${
+                  manageOptionsTab === "languages"
+                    ? "border-sky-500 text-sky-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Languages ({languages.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setManageOptionsTab("regions");
+                }}
+                className={`flex items-center gap-1.5 border-b-2 px-3.5 py-2 text-xs font-semibold transition ${
+                  manageOptionsTab === "regions"
+                    ? "border-amber-500 text-amber-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                Regions ({regions.length})
+              </button>
+            </div>
 
             {error ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
@@ -764,52 +924,289 @@ export function TasksView() {
               </div>
             ) : null}
 
-            {/* List existing */}
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
-                Available Business Types ({businessTypes.length})
-              </p>
-              <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/80 rounded-xl border border-slate-800 bg-slate-900/60">
-                {businessTypes.map((bt) => (
-                  <div
-                    key={bt.id}
-                    className="flex items-center justify-between px-3.5 py-2.5 text-sm"
-                  >
-                    <div>
-                      <span className="font-medium text-white">{bt.name}</span>
-                      {bt._count?.tasks ? (
-                        <span className="ml-2 text-xs text-slate-400">
-                          ({bt._count.tasks}{" "}
-                          {bt._count.tasks === 1 ? "task" : "tasks"})
-                        </span>
-                      ) : null}
-                    </div>
+            {/* TAB 1: Business Types */}
+            {manageOptionsTab === "btypes" ? (
+              <div className="space-y-4">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError(null);
+                    if (!newBTypeName.trim()) return;
+
+                    try {
+                      await createBusinessType.mutateAsync({
+                        name: newBTypeName.trim(),
+                      });
+                      setNewBTypeName("");
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to create business type",
+                      );
+                    }
+                  }}
+                  className="space-y-2"
+                >
+                  <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                    Add New Business Type
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newBTypeName}
+                      onChange={(e) => setNewBTypeName(e.target.value)}
+                      placeholder="e.g. Healthcare, Fintech, Real Estate"
+                      className={inputClass}
+                      required
+                    />
                     <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await deleteBusinessType.mutateAsync(bt.id);
-                        } catch (err) {
-                          setError(
-                            err instanceof Error
-                              ? err.message
-                              : "Failed to delete business type",
-                          );
-                        }
-                      }}
-                      className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                      type="submit"
+                      disabled={createBusinessType.isPending}
+                      className="shrink-0 self-end rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-60 transition"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {createBusinessType.isPending ? "Adding…" : "Add"}
                     </button>
                   </div>
-                ))}
-                {businessTypes.length === 0 ? (
-                  <p className="p-4 text-center text-xs text-slate-500">
-                    No business types created yet. Add one above.
+                </form>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
+                    Available Business Types ({businessTypes.length})
                   </p>
-                ) : null}
+                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/80 rounded-xl border border-slate-800 bg-slate-900/60">
+                    {businessTypes.map((bt) => (
+                      <div
+                        key={bt.id}
+                        className="flex items-center justify-between px-3.5 py-2.5 text-sm"
+                      >
+                        <div>
+                          <span className="font-medium text-white">
+                            {bt.name}
+                          </span>
+                          {bt._count?.tasks ? (
+                            <span className="ml-2 text-xs text-slate-400">
+                              ({bt._count.tasks}{" "}
+                              {bt._count.tasks === 1 ? "task" : "tasks"})
+                            </span>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await deleteBusinessType.mutateAsync(bt.id);
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Failed to delete business type",
+                              );
+                            }
+                          }}
+                          className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {businessTypes.length === 0 ? (
+                      <p className="p-4 text-center text-xs text-slate-500">
+                        No business types created yet. Add one above.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : null}
+
+            {/* TAB 2: Languages */}
+            {manageOptionsTab === "languages" ? (
+              <div className="space-y-4">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError(null);
+                    if (!newLangName.trim()) return;
+
+                    try {
+                      await createLanguage.mutateAsync({
+                        name: newLangName.trim(),
+                      });
+                      setNewLangName("");
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to create language",
+                      );
+                    }
+                  }}
+                  className="space-y-2"
+                >
+                  <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                    Add New Language
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newLangName}
+                      onChange={(e) => setNewLangName(e.target.value)}
+                      placeholder="e.g. English, Spanish, German, Hindi"
+                      className={inputClass}
+                      required
+                    />
+                    <button
+                      type="submit"
+                      disabled={createLanguage.isPending}
+                      className="shrink-0 self-end rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-400 disabled:opacity-60 transition"
+                    >
+                      {createLanguage.isPending ? "Adding…" : "Add"}
+                    </button>
+                  </div>
+                </form>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
+                    Available Languages ({languages.length})
+                  </p>
+                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/80 rounded-xl border border-slate-800 bg-slate-900/60">
+                    {languages.map((lang) => (
+                      <div
+                        key={lang.id}
+                        className="flex items-center justify-between px-3.5 py-2.5 text-sm"
+                      >
+                        <div>
+                          <span className="font-medium text-white">
+                            {lang.name}
+                          </span>
+                          <span className="ml-2 text-xs text-slate-400">
+                            ({lang._count?.tasks ?? 0} tasks,{" "}
+                            {lang._count?.employees ?? 0} employees)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await deleteLanguage.mutateAsync(lang.id);
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Failed to delete language",
+                              );
+                            }
+                          }}
+                          className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {languages.length === 0 ? (
+                      <p className="p-4 text-center text-xs text-slate-500">
+                        No languages created yet. Add one above.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* TAB 3: Regions */}
+            {manageOptionsTab === "regions" ? (
+              <div className="space-y-4">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError(null);
+                    if (!newRegName.trim()) return;
+
+                    try {
+                      await createRegion.mutateAsync({
+                        name: newRegName.trim(),
+                      });
+                      setNewRegName("");
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to create region",
+                      );
+                    }
+                  }}
+                  className="space-y-2"
+                >
+                  <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                    Add New Region
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newRegName}
+                      onChange={(e) => setNewRegName(e.target.value)}
+                      placeholder="e.g. North America, Europe, Asia Pacific"
+                      className={inputClass}
+                      required
+                    />
+                    <button
+                      type="submit"
+                      disabled={createRegion.isPending}
+                      className="shrink-0 self-end rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-400 disabled:opacity-60 transition"
+                    >
+                      {createRegion.isPending ? "Adding…" : "Add"}
+                    </button>
+                  </div>
+                </form>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
+                    Available Regions ({regions.length})
+                  </p>
+                  <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/80 rounded-xl border border-slate-800 bg-slate-900/60">
+                    {regions.map((reg) => (
+                      <div
+                        key={reg.id}
+                        className="flex items-center justify-between px-3.5 py-2.5 text-sm"
+                      >
+                        <div>
+                          <span className="font-medium text-white">
+                            {reg.name}
+                          </span>
+                          <span className="ml-2 text-xs text-slate-400">
+                            ({reg._count?.tasks ?? 0} tasks,{" "}
+                            {reg._count?.employees ?? 0} employees)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await deleteRegion.mutateAsync(reg.id);
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Failed to delete region",
+                              );
+                            }
+                          }}
+                          className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {regions.length === 0 ? (
+                      <p className="p-4 text-center text-xs text-slate-500">
+                        No regions created yet. Add one above.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </Modal>
       ) : null}

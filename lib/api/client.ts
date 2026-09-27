@@ -21,12 +21,39 @@ export type BusinessType = {
   };
 };
 
+export type Language = {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _count?: {
+    tasks: number;
+    employees: number;
+  };
+};
+
+export type Region = {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _count?: {
+    tasks: number;
+    employees: number;
+  };
+};
+
 export type Employee = {
   id: string;
+  employeeId?: string | null;
   name: string;
   email: string;
   phone: string | null;
   isActive: boolean;
+  languageId?: string | null;
+  language?: { id: string; name: string } | null;
+  regionId?: string | null;
+  region?: { id: string; name: string } | null;
   createdAt: string;
   _count: {
     assignedTasks: number;
@@ -44,6 +71,10 @@ export type Task = {
   businessName: string | null;
   businessTypeId: string | null;
   businessType: { id: string; name: string } | null;
+  languageId: string | null;
+  language: { id: string; name: string } | null;
+  regionId: string | null;
+  region: { id: string; name: string } | null;
   contactDetail: string | null;
   contactPhone: string | null;
   contactEmail: string | null;

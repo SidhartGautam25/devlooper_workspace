@@ -39,12 +39,20 @@ enum LeadStatus {
 
 model User {
   id            String   @id @default(uuid())
+  employeeId    String?  @unique @default(uuid())
   name          String
   email         String   @unique
   passwordHash  String
   role          Role     @default(EMPLOYEE)
   phone         String?
   isActive      Boolean  @default(true)
+
+  languageId    String?
+  language      Language? @relation(fields: [languageId], references: [id], onDelete: SetNull)
+
+  regionId      String?
+  region        Region?   @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -54,6 +62,9 @@ model User {
 
   @@index([role])
   @@index([email])
+  @@index([employeeId])
+  @@index([languageId])
+  @@index([regionId])
 }
 
 enum TaskResult {
@@ -70,6 +81,26 @@ model BusinessType {
   tasks Task[]
 }
 
+model Language {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks     Task[]
+  employees User[]
+}
+
+model Region {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks     Task[]
+  employees User[]
+}
+
 model Task {
   id          String       @id @default(uuid())
   title       String
@@ -81,6 +112,13 @@ model Task {
   businessName   String?
   businessTypeId String?
   businessType   BusinessType? @relation(fields: [businessTypeId], references: [id], onDelete: SetNull)
+
+  languageId     String?
+  language       Language?     @relation(fields: [languageId], references: [id], onDelete: SetNull)
+
+  regionId       String?
+  region         Region?       @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
   contactDetail  String?       @db.Text
   contactPhone   String?
   contactEmail   String?
@@ -101,6 +139,8 @@ model Task {
   @@index([assignedToId])
   @@index([status])
   @@index([businessTypeId])
+  @@index([languageId])
+  @@index([regionId])
 }
 
 model Lead {

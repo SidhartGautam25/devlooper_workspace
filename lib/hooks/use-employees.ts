@@ -19,6 +19,8 @@ export function useCreateEmployee() {
       email: string;
       password: string;
       phone?: string;
+      languageId?: string | null;
+      regionId?: string | null;
     }) =>
       apiFetch("/api/employees", {
         method: "POST",

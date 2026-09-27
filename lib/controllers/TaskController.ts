@@ -26,6 +26,8 @@ export const TaskController = {
         dueDate?: string | null;
         businessName?: string | null;
         businessTypeId?: string | null;
+        languageId?: string | null;
+        regionId?: string | null;
         contactDetail?: string | null;
         contactPhone?: string | null;
         contactEmail?: string | null;
@@ -38,6 +40,8 @@ export const TaskController = {
         dueDate: body.dueDate,
         businessName: body.businessName,
         businessTypeId: body.businessTypeId,
+        languageId: body.languageId,
+        regionId: body.regionId,
         contactDetail: body.contactDetail,
         contactPhone: body.contactPhone,
         contactEmail: body.contactEmail,
@@ -60,6 +64,8 @@ export const TaskController = {
         dueDate?: string | null;
         businessName?: string | null;
         businessTypeId?: string | null;
+        languageId?: string | null;
+        regionId?: string | null;
         contactDetail?: string | null;
         contactPhone?: string | null;
         contactEmail?: string | null;

@@ -6,6 +6,8 @@ import {
 } from "@prisma/client";
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { BusinessTypeRepository } from "@/lib/repositories/BusinessTypeRepository";
+import { LanguageRepository } from "@/lib/repositories/LanguageRepository";
+import { RegionRepository } from "@/lib/repositories/RegionRepository";
 import { TaskRepository } from "@/lib/repositories/TaskRepository";
 import { UserRepository } from "@/lib/repositories/UserRepository";
 import type { CurrentUser } from "@/lib/types";
@@ -31,6 +33,8 @@ export const TaskService = {
       dueDate?: string | null;
       businessName?: string | null;
       businessTypeId?: string | null;
+      languageId?: string | null;
+      regionId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;
@@ -61,6 +65,22 @@ export const TaskService = {
       }
     }
 
+    const languageId = data.languageId?.trim() || null;
+    if (languageId) {
+      const lang = await LanguageRepository.findById(languageId);
+      if (!lang) {
+        throw new BadRequestError("Selected language does not exist");
+      }
+    }
+
+    const regionId = data.regionId?.trim() || null;
+    if (regionId) {
+      const reg = await RegionRepository.findById(regionId);
+      if (!reg) {
+        throw new BadRequestError("Selected region does not exist");
+      }
+    }
+
     return TaskRepository.create({
       title,
       description: data.description?.trim() || null,
@@ -81,6 +101,8 @@ export const TaskService = {
       ...(businessTypeId
         ? { businessType: { connect: { id: businessTypeId } } }
         : {}),
+      ...(languageId ? { language: { connect: { id: languageId } } } : {}),
+      ...(regionId ? { region: { connect: { id: regionId } } } : {}),
     });
   },
 
@@ -96,6 +118,8 @@ export const TaskService = {
       status?: TaskStatus;
       businessName?: string | null;
       businessTypeId?: string | null;
+      languageId?: string | null;
+      regionId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;
@@ -126,6 +150,8 @@ export const TaskService = {
         data.assignedToId !== undefined ||
         data.businessName !== undefined ||
         data.businessTypeId !== undefined ||
+        data.languageId !== undefined ||
+        data.regionId !== undefined ||
         data.priority !== undefined ||
         data.dueDate !== undefined ||
         data.contactDetail !== undefined ||
@@ -179,6 +205,34 @@ export const TaskService = {
       }
     }
 
+    let languageUpdate = undefined;
+    if (data.languageId !== undefined) {
+      const newLangId = data.languageId?.trim() || null;
+      if (newLangId) {
+        const lang = await LanguageRepository.findById(newLangId);
+        if (!lang) {
+          throw new BadRequestError("Selected language does not exist");
+        }
+        languageUpdate = { connect: { id: newLangId } };
+      } else {
+        languageUpdate = { disconnect: true };
+      }
+    }
+
+    let regionUpdate = undefined;
+    if (data.regionId !== undefined) {
+      const newRegId = data.regionId?.trim() || null;
+      if (newRegId) {
+        const reg = await RegionRepository.findById(newRegId);
+        if (!reg) {
+          throw new BadRequestError("Selected region does not exist");
+        }
+        regionUpdate = { connect: { id: newRegId } };
+      } else {
+        regionUpdate = { disconnect: true };
+      }
+    }
+
     return TaskRepository.update(taskId, {
       ...(data.title !== undefined ? { title: data.title.trim() } : {}),
       ...(data.description !== undefined
@@ -210,6 +264,8 @@ export const TaskService = {
       ...(data.result !== undefined ? { result: data.result } : {}),
       ...(assignedToUpdate ? { assignedTo: assignedToUpdate } : {}),
       ...(businessTypeUpdate ? { businessType: businessTypeUpdate } : {}),
+      ...(languageUpdate ? { language: languageUpdate } : {}),
+      ...(regionUpdate ? { region: regionUpdate } : {}),
     });
   },
 
