@@ -8,6 +8,7 @@ export type AdminUser = {
   name?: string | null;
   email?: string | null;
   role: Role;
+  employeeId?: string | null;
 };
 
 const AdminUserContext = createContext<AdminUser | null>(null);

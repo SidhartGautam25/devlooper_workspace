@@ -1,4 +1,5 @@
-import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
+import * as bcrypt from "bcryptjs";
 import {
   LeadStatus,
   PrismaClient,
@@ -58,6 +59,7 @@ async function main() {
   if (!employee) {
     employee = await prisma.user.create({
       data: {
+        employeeId: randomUUID(),
         name: "Alex Rivera",
         email: "employee@agency.com",
         passwordHash,
@@ -65,6 +67,17 @@ async function main() {
         phone: "+1 (555) 010-0042",
         isActive: true,
       },
+    });
+  }
+
+  // Backfill employeeId for any existing employee accounts where it is null
+  const employeesWithoutId = await prisma.user.findMany({
+    where: { role: Role.EMPLOYEE, employeeId: null },
+  });
+  for (const emp of employeesWithoutId) {
+    await prisma.user.update({
+      where: { id: emp.id },
+      data: { employeeId: randomUUID() },
     });
   }
 
@@ -111,6 +124,46 @@ async function main() {
       ],
       skipDuplicates: true,
     });
+  }
+
+  const tgDelegate = (prisma as any).taskGroup;
+  if (tgDelegate) {
+    const tgCount = await tgDelegate.count();
+    if (tgCount === 0) {
+      const defaultLang = await prisma.language.findFirst({
+        where: { name: "English" },
+      });
+      const defaultReg = await prisma.region.findFirst({
+        where: { name: "North America" },
+      });
+      const defaultBType = await prisma.businessType.findFirst({
+        where: { name: "Technology & Software" },
+      });
+
+      await tgDelegate.createMany({
+        data: [
+          {
+            name: "US Inbound Tech Lead",
+            description:
+              "Follow up with technology lead from website inbound funnel. Focus on SaaS roadmap and pricing requirements.",
+            priority: TaskPriority.HIGH,
+            businessTypeId: defaultBType?.id ?? null,
+            languageId: defaultLang?.id ?? null,
+            regionId: defaultReg?.id ?? null,
+            assignedToId: employee.id,
+          },
+          {
+            name: "Real Estate Client Onboarding",
+            description:
+              "Introductory qualification and listing requirements discussion.",
+            priority: TaskPriority.MEDIUM,
+            languageId: defaultLang?.id ?? null,
+            assignedToId: employee.id,
+          },
+        ],
+        skipDuplicates: true,
+      });
+    }
   }
 
   const taskCount = await prisma.task.count();

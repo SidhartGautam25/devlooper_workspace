@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
 import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
@@ -62,7 +63,7 @@ export const UserService = {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const employee = await UserRepository.create({
-      employeeId: crypto.randomUUID(),
+      employeeId: randomUUID(),
       name,
       email,
       phone,

@@ -61,6 +61,27 @@ export type Employee = {
   };
 };
 
+export type TaskGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  priority: TaskPriority | null;
+  businessName: string | null;
+  businessTypeId: string | null;
+  businessType: { id: string; name: string } | null;
+  languageId: string | null;
+  language: { id: string; name: string } | null;
+  regionId: string | null;
+  region: { id: string; name: string } | null;
+  assignedToId: string | null;
+  assignedTo: { id: string; name: string; email: string; role: Role } | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    tasks: number;
+  };
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -68,6 +89,8 @@ export type Task = {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: string | null;
+  taskGroupId?: string | null;
+  taskGroup?: { id: string; name: string } | null;
   businessName: string | null;
   businessTypeId: string | null;
   businessType: { id: string; name: string } | null;

@@ -8,6 +8,7 @@ import {
   Clock,
   FileText,
   Globe,
+  Layers,
   Mail,
   MapPin,
   Phone,
@@ -41,6 +42,11 @@ import {
   useRegions,
 } from "@/lib/hooks/use-regions";
 import {
+  useCreateTaskGroup,
+  useDeleteTaskGroup,
+  useTaskGroups,
+} from "@/lib/hooks/use-task-groups";
+import {
   useCreateTask,
   useDeleteTask,
   useTasks,
@@ -49,6 +55,7 @@ import {
 } from "@/lib/hooks/use-tasks";
 import type {
   Task,
+  TaskGroup,
   TaskPriority,
   TaskResult,
   TaskStatus,
@@ -93,6 +100,7 @@ export function TasksView() {
   const { data: businessTypes = [] } = useBusinessTypes();
   const { data: languages = [] } = useLanguages();
   const { data: regions = [] } = useRegions();
+  const { data: taskGroups = [] } = useTaskGroups();
 
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
@@ -108,6 +116,9 @@ export function TasksView() {
   const createRegion = useCreateRegion();
   const deleteRegion = useDeleteRegion();
 
+  const createTaskGroup = useCreateTaskGroup();
+  const deleteTaskGroup = useDeleteTaskGroup();
+
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
@@ -119,12 +130,13 @@ export function TasksView() {
   const [bTypeFilter, setBTypeFilter] = useState<string>("ALL");
   const [languageFilter, setLanguageFilter] = useState<string>("ALL");
   const [regionFilter, setRegionFilter] = useState<string>("ALL");
+  const [taskGroupFilter, setTaskGroupFilter] = useState<string>("ALL");
 
   // Modals state
   const [createOpen, setCreateOpen] = useState(false);
   const [manageOptionsOpen, setManageOptionsOpen] = useState(false);
   const [manageOptionsTab, setManageOptionsTab] = useState<
-    "btypes" | "languages" | "regions"
+    "btypes" | "languages" | "regions" | "taskgroups"
   >("btypes");
   const [logCallTask, setLogCallTask] = useState<Task | null>(null);
   const [reassignTask, setReassignTask] = useState<Task | null>(null);
@@ -133,6 +145,62 @@ export function TasksView() {
   const [newBTypeName, setNewBTypeName] = useState("");
   const [newLangName, setNewLangName] = useState("");
   const [newRegName, setNewRegName] = useState("");
+
+  // New task group creation states
+  const [newTgName, setNewTgName] = useState("");
+  const [newTgBusinessName, setNewTgBusinessName] = useState("");
+  const [newTgBusinessTypeId, setNewTgBusinessTypeId] = useState("");
+  const [newTgLanguageId, setNewTgLanguageId] = useState("");
+  const [newTgRegionId, setNewTgRegionId] = useState("");
+  const [newTgPriority, setNewTgPriority] = useState<TaskPriority>("MEDIUM");
+  const [newTgAssignedToId, setNewTgAssignedToId] = useState("");
+  const [newTgDescription, setNewTgDescription] = useState("");
+
+  // Form states for Create Task modal (supports quick-fill from task groups)
+  const [selectedTaskGroupId, setSelectedTaskGroupId] = useState("");
+  const [formTitle, setFormTitle] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formBusinessName, setFormBusinessName] = useState("");
+  const [formBusinessTypeId, setFormBusinessTypeId] = useState("");
+  const [formLanguageId, setFormLanguageId] = useState("");
+  const [formRegionId, setFormRegionId] = useState("");
+  const [formPriority, setFormPriority] = useState<TaskPriority>("MEDIUM");
+  const [formAssignedToId, setFormAssignedToId] = useState("");
+  const [formDueDate, setFormDueDate] = useState("");
+  const [formContactPhone, setFormContactPhone] = useState("");
+  const [formContactEmail, setFormContactEmail] = useState("");
+  const [formContactDetail, setFormContactDetail] = useState("");
+
+  const resetCreateForm = () => {
+    setSelectedTaskGroupId("");
+    setFormTitle("");
+    setFormDescription("");
+    setFormBusinessName("");
+    setFormBusinessTypeId("");
+    setFormLanguageId("");
+    setFormRegionId("");
+    setFormPriority("MEDIUM");
+    setFormAssignedToId("");
+    setFormDueDate("");
+    setFormContactPhone("");
+    setFormContactEmail("");
+    setFormContactDetail("");
+    setError(null);
+  };
+
+  const handleApplyTaskGroup = (tgId: string) => {
+    setSelectedTaskGroupId(tgId);
+    if (!tgId) return;
+    const tg = taskGroups.find((g) => g.id === tgId);
+    if (!tg) return;
+    if (tg.businessName) setFormBusinessName(tg.businessName);
+    if (tg.businessTypeId) setFormBusinessTypeId(tg.businessTypeId);
+    if (tg.languageId) setFormLanguageId(tg.languageId);
+    if (tg.regionId) setFormRegionId(tg.regionId);
+    if (tg.priority) setFormPriority(tg.priority);
+    if (tg.assignedToId) setFormAssignedToId(tg.assignedToId);
+    if (tg.description) setFormDescription(tg.description);
+  };
 
   const activeEmployees = employees.filter((employee) => employee.isActive);
 
@@ -148,6 +216,8 @@ export function TasksView() {
         languageFilter === "ALL" || task.languageId === languageFilter;
       const matchRegion =
         regionFilter === "ALL" || task.regionId === regionFilter;
+      const matchTaskGroup =
+        taskGroupFilter === "ALL" || task.taskGroupId === taskGroupFilter;
 
       let matchResult = true;
       if (resultFilter === "PENDING") {
@@ -171,6 +241,7 @@ export function TasksView() {
           task.businessType.name.toLowerCase().includes(query)) ||
         (task.language && task.language.name.toLowerCase().includes(query)) ||
         (task.region && task.region.name.toLowerCase().includes(query)) ||
+        (task.taskGroup && task.taskGroup.name.toLowerCase().includes(query)) ||
         (task.assignedTo && task.assignedTo.name.toLowerCase().includes(query));
 
       return (
@@ -179,6 +250,7 @@ export function TasksView() {
         matchBType &&
         matchLanguage &&
         matchRegion &&
+        matchTaskGroup &&
         matchResult &&
         matchSearch
       );
@@ -191,6 +263,7 @@ export function TasksView() {
     resultFilter,
     search,
     statusFilter,
+    taskGroupFilter,
     tasks,
   ]);
 
@@ -255,6 +328,19 @@ export function TasksView() {
                 type="button"
                 onClick={() => {
                   setError(null);
+                  setManageOptionsTab("taskgroups");
+                  setManageOptionsOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs font-medium text-purple-300 hover:bg-purple-500/20 transition"
+              >
+                <Layers className="h-3.5 w-3.5 text-purple-400" />
+                Task Groups
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  resetCreateForm();
                   setCreateOpen(true);
                 }}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-500 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-400 transition"
@@ -268,9 +354,9 @@ export function TasksView() {
       </div>
 
       {/* Filter Bar */}
-      <div className="grid gap-2.5 rounded-2xl border border-slate-800/80 bg-[#131B2E]/80 p-3.5 backdrop-blur-xl sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7">
+      <div className="grid gap-2.5 rounded-2xl border border-slate-800/80 bg-[#131B2E]/80 p-3.5 backdrop-blur-xl sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
         {/* Search */}
-        <div className="relative sm:col-span-2 lg:col-span-1">
+        <div className="relative sm:col-span-2 md:col-span-2 lg:col-span-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
             <Search className="h-4 w-4" />
           </div>
@@ -355,6 +441,20 @@ export function TasksView() {
           ))}
         </select>
 
+        {/* Task Group Filter */}
+        <select
+          value={taskGroupFilter}
+          onChange={(e) => setTaskGroupFilter(e.target.value)}
+          className="rounded-xl border border-slate-700 bg-slate-800/90 px-2.5 py-2 text-xs text-white outline-none focus:border-indigo-400"
+        >
+          <option value="ALL">All Task Groups</option>
+          {taskGroups.map((tg) => (
+            <option key={tg.id} value={tg.id}>
+              {tg.name}
+            </option>
+          ))}
+        </select>
+
         {/* Call Result Filter */}
         <select
           value={resultFilter}
@@ -412,8 +512,15 @@ export function TasksView() {
                       {task.businessName ||
                       task.businessType ||
                       task.language ||
-                      task.region ? (
+                      task.region ||
+                      task.taskGroup ? (
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-indigo-300">
+                          {task.taskGroup ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-300 border border-purple-500/20">
+                              <Layers className="h-3 w-3" />
+                              {task.taskGroup.name}
+                            </span>
+                          ) : null}
                           {task.businessName ? (
                             <span className="flex items-center gap-1 text-slate-200">
                               <Building2 className="h-3.5 w-3.5 text-indigo-400" />
@@ -632,32 +739,36 @@ export function TasksView() {
 
       {/* 1. Modal: Create Task (Superuser) */}
       {createOpen ? (
-        <Modal title="Create New Task" onClose={() => setCreateOpen(false)}>
+        <Modal
+          title="Create New Task"
+          onClose={() => {
+            resetCreateForm();
+            setCreateOpen(false);
+          }}
+        >
           <form
             className="space-y-4"
             onSubmit={async (e) => {
               e.preventDefault();
-              const form = new FormData(e.currentTarget);
               setError(null);
 
               try {
                 await createTask.mutateAsync({
-                  title: String(form.get("title") ?? ""),
-                  description: String(form.get("description") ?? ""),
-                  businessName: String(form.get("businessName") ?? ""),
-                  businessTypeId:
-                    String(form.get("businessTypeId") ?? "") || null,
-                  languageId: String(form.get("languageId") ?? "") || null,
-                  regionId: String(form.get("regionId") ?? "") || null,
-                  contactPhone: String(form.get("contactPhone") ?? ""),
-                  contactEmail: String(form.get("contactEmail") ?? ""),
-                  contactDetail: String(form.get("contactDetail") ?? ""),
-                  assignedToId: String(form.get("assignedToId") ?? "") || null,
-                  priority: String(
-                    form.get("priority") ?? "MEDIUM",
-                  ) as TaskPriority,
-                  dueDate: String(form.get("dueDate") ?? "") || null,
+                  title: formTitle.trim(),
+                  description: formDescription.trim() || null,
+                  businessName: formBusinessName.trim() || null,
+                  businessTypeId: formBusinessTypeId || null,
+                  languageId: formLanguageId || null,
+                  regionId: formRegionId || null,
+                  taskGroupId: selectedTaskGroupId || null,
+                  contactPhone: formContactPhone.trim() || null,
+                  contactEmail: formContactEmail.trim() || null,
+                  contactDetail: formContactDetail.trim() || null,
+                  assignedToId: formAssignedToId || null,
+                  priority: formPriority,
+                  dueDate: formDueDate || null,
                 });
+                resetCreateForm();
                 setCreateOpen(false);
               } catch (err) {
                 setError(
@@ -666,13 +777,47 @@ export function TasksView() {
               }
             }}
           >
+            {/* Quick Fill from Task Group */}
+            {taskGroups.length > 0 ? (
+              <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                    <Layers className="h-3.5 w-3.5" />
+                    Quick Fill from Task Group
+                  </label>
+                  {selectedTaskGroupId ? (
+                    <span className="text-[11px] text-purple-400 font-medium">
+                      Preset applied
+                    </span>
+                  ) : null}
+                </div>
+                <select
+                  value={selectedTaskGroupId}
+                  onChange={(e) => handleApplyTaskGroup(e.target.value)}
+                  className="w-full rounded-lg border border-purple-500/40 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-purple-400"
+                >
+                  <option value="">-- Choose a Task Group (Optional) --</option>
+                  {taskGroups.map((tg) => (
+                    <option key={tg.id} value={tg.id}>
+                      {tg.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-purple-300/80">
+                  Selecting a group auto-fills predefined values below to speed
+                  up creation.
+                </p>
+              </div>
+            ) : null}
+
             {/* Title */}
             <div>
               <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
                 Task Title *
               </label>
               <input
-                name="title"
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
                 required
                 placeholder="e.g. Inbound Qualification Call"
                 className={inputClass}
@@ -686,7 +831,8 @@ export function TasksView() {
                   Business Name
                 </label>
                 <input
-                  name="businessName"
+                  value={formBusinessName}
+                  onChange={(e) => setFormBusinessName(e.target.value)}
                   placeholder="e.g. Acme Corporation"
                   className={inputClass}
                 />
@@ -696,7 +842,11 @@ export function TasksView() {
                 <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
                   Business Type
                 </label>
-                <select name="businessTypeId" className={inputClass}>
+                <select
+                  value={formBusinessTypeId}
+                  onChange={(e) => setFormBusinessTypeId(e.target.value)}
+                  className={inputClass}
+                >
                   <option value="">-- Select Business Type --</option>
                   {businessTypes.map((bt) => (
                     <option key={bt.id} value={bt.id}>
@@ -713,7 +863,11 @@ export function TasksView() {
                 <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
                   Language
                 </label>
-                <select name="languageId" className={inputClass}>
+                <select
+                  value={formLanguageId}
+                  onChange={(e) => setFormLanguageId(e.target.value)}
+                  className={inputClass}
+                >
                   <option value="">-- Select Language (Optional) --</option>
                   {languages.map((l) => (
                     <option key={l.id} value={l.id}>
@@ -727,7 +881,11 @@ export function TasksView() {
                 <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
                   Region
                 </label>
-                <select name="regionId" className={inputClass}>
+                <select
+                  value={formRegionId}
+                  onChange={(e) => setFormRegionId(e.target.value)}
+                  className={inputClass}
+                >
                   <option value="">-- Select Region (Optional) --</option>
                   {regions.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -745,7 +903,8 @@ export function TasksView() {
                   Contact Phone
                 </label>
                 <input
-                  name="contactPhone"
+                  value={formContactPhone}
+                  onChange={(e) => setFormContactPhone(e.target.value)}
                   type="tel"
                   placeholder="+1 (555) 000-0000"
                   className={inputClass}
@@ -757,7 +916,8 @@ export function TasksView() {
                   Contact Email
                 </label>
                 <input
-                  name="contactEmail"
+                  value={formContactEmail}
+                  onChange={(e) => setFormContactEmail(e.target.value)}
                   type="email"
                   placeholder="contact@business.com"
                   className={inputClass}
@@ -771,7 +931,8 @@ export function TasksView() {
                 Contact Address / Detail
               </label>
               <input
-                name="contactDetail"
+                value={formContactDetail}
+                onChange={(e) => setFormContactDetail(e.target.value)}
                 placeholder="Key contact person, address, or phone extensions"
                 className={inputClass}
               />
@@ -783,7 +944,11 @@ export function TasksView() {
                 <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
                   Assign To (Optional)
                 </label>
-                <select name="assignedToId" className={inputClass}>
+                <select
+                  value={formAssignedToId}
+                  onChange={(e) => setFormAssignedToId(e.target.value)}
+                  className={inputClass}
+                >
                   <option value="">-- Leave Unassigned --</option>
                   {activeEmployees.map((emp) => (
                     <option key={emp.id} value={emp.id}>
@@ -801,8 +966,10 @@ export function TasksView() {
                   Priority
                 </label>
                 <select
-                  name="priority"
-                  defaultValue="MEDIUM"
+                  value={formPriority}
+                  onChange={(e) =>
+                    setFormPriority(e.target.value as TaskPriority)
+                  }
                   className={inputClass}
                 >
                   {priorities
@@ -821,7 +988,12 @@ export function TasksView() {
               <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
                 Due Date
               </label>
-              <input name="dueDate" type="date" className={inputClass} />
+              <input
+                value={formDueDate}
+                onChange={(e) => setFormDueDate(e.target.value)}
+                type="date"
+                className={inputClass}
+              />
             </div>
 
             <div>
@@ -829,7 +1001,8 @@ export function TasksView() {
                 Instructions / Description
               </label>
               <textarea
-                name="description"
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
                 rows={3}
                 placeholder="Specific guidance for the assigned employee..."
                 className={inputClass}
@@ -915,6 +1088,21 @@ export function TasksView() {
               >
                 <MapPin className="h-3.5 w-3.5" />
                 Regions ({regions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setManageOptionsTab("taskgroups");
+                }}
+                className={`flex items-center gap-1.5 border-b-2 px-3.5 py-2 text-xs font-semibold transition ${
+                  manageOptionsTab === "taskgroups"
+                    ? "border-purple-500 text-purple-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                Task Groups ({taskGroups.length})
               </button>
             </div>
 
@@ -1201,6 +1389,280 @@ export function TasksView() {
                     {regions.length === 0 ? (
                       <p className="p-4 text-center text-xs text-slate-500">
                         No regions created yet. Add one above.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* TAB 4: Task Groups */}
+            {manageOptionsTab === "taskgroups" ? (
+              <div className="space-y-4">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setError(null);
+                    if (!newTgName.trim()) return;
+
+                    try {
+                      await createTaskGroup.mutateAsync({
+                        name: newTgName.trim(),
+                        businessName: newTgBusinessName.trim() || null,
+                        businessTypeId: newTgBusinessTypeId || null,
+                        languageId: newTgLanguageId || null,
+                        regionId: newTgRegionId || null,
+                        priority: newTgPriority,
+                        assignedToId: newTgAssignedToId || null,
+                        description: newTgDescription.trim() || null,
+                      });
+                      setNewTgName("");
+                      setNewTgBusinessName("");
+                      setNewTgBusinessTypeId("");
+                      setNewTgLanguageId("");
+                      setNewTgRegionId("");
+                      setNewTgPriority("MEDIUM");
+                      setNewTgAssignedToId("");
+                      setNewTgDescription("");
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to create task group",
+                      );
+                    }
+                  }}
+                  className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-3.5"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wider text-purple-300">
+                    Configure New Task Group (Preset)
+                  </p>
+
+                  <div>
+                    <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                      Group Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newTgName}
+                      onChange={(e) => setNewTgName(e.target.value)}
+                      placeholder="e.g. US Tech Inbound Leads, UK Real Estate"
+                      className={inputClass}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                        Default Business Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newTgBusinessName}
+                        onChange={(e) => setNewTgBusinessName(e.target.value)}
+                        placeholder="Optional preset business name"
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                        Default Business Type
+                      </label>
+                      <select
+                        value={newTgBusinessTypeId}
+                        onChange={(e) => setNewTgBusinessTypeId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">-- None --</option>
+                        {businessTypes.map((bt) => (
+                          <option key={bt.id} value={bt.id}>
+                            {bt.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                        Default Language
+                      </label>
+                      <select
+                        value={newTgLanguageId}
+                        onChange={(e) => setNewTgLanguageId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">-- None --</option>
+                        {languages.map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                        Default Region
+                      </label>
+                      <select
+                        value={newTgRegionId}
+                        onChange={(e) => setNewTgRegionId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">-- None --</option>
+                        {regions.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                        Default Priority
+                      </label>
+                      <select
+                        value={newTgPriority}
+                        onChange={(e) =>
+                          setNewTgPriority(e.target.value as TaskPriority)
+                        }
+                        className={inputClass}
+                      >
+                        {priorities
+                          .filter((p) => p !== "ALL")
+                          .map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                        Default Assignee
+                      </label>
+                      <select
+                        value={newTgAssignedToId}
+                        onChange={(e) => setNewTgAssignedToId(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="">-- None --</option>
+                        {activeEmployees.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name} ({emp.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium uppercase tracking-wider text-slate-300">
+                      Default Instructions / Description
+                    </label>
+                    <textarea
+                      value={newTgDescription}
+                      onChange={(e) => setNewTgDescription(e.target.value)}
+                      rows={2}
+                      placeholder="Template instructions to automatically pre-fill for tasks in this group..."
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={createTaskGroup.isPending}
+                    className="w-full rounded-xl bg-purple-600 py-2 text-xs font-semibold text-white hover:bg-purple-500 disabled:opacity-60 transition"
+                  >
+                    {createTaskGroup.isPending
+                      ? "Creating task group…"
+                      : "Create Task Group"}
+                  </button>
+                </form>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
+                    Configured Task Groups ({taskGroups.length})
+                  </p>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-slate-800/80 rounded-xl border border-slate-800 bg-slate-900/60">
+                    {taskGroups.map((tg) => (
+                      <div
+                        key={tg.id}
+                        className="flex items-start justify-between p-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-white text-sm">
+                              {tg.name}
+                            </span>
+                            <span className="rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-300 border border-purple-500/20">
+                              {tg._count?.tasks ?? 0} tasks
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                            {tg.businessType ? (
+                              <span className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-300">
+                                Type: {tg.businessType.name}
+                              </span>
+                            ) : null}
+                            {tg.language ? (
+                              <span className="rounded bg-sky-500/10 px-1.5 py-0.5 text-sky-300">
+                                🌐 {tg.language.name}
+                              </span>
+                            ) : null}
+                            {tg.region ? (
+                              <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-amber-300">
+                                📍 {tg.region.name}
+                              </span>
+                            ) : null}
+                            {tg.priority ? (
+                              <span className="rounded bg-slate-800 px-1.5 py-0.5 text-indigo-300">
+                                {tg.priority}
+                              </span>
+                            ) : null}
+                            {tg.assignedTo ? (
+                              <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-emerald-300">
+                                👤 {tg.assignedTo.name}
+                              </span>
+                            ) : null}
+                          </div>
+                          {tg.description ? (
+                            <p className="text-[11px] text-slate-400 italic line-clamp-1">
+                              &ldquo;{tg.description}&rdquo;
+                            </p>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await deleteTaskGroup.mutateAsync(tg.id);
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Failed to delete task group",
+                              );
+                            }
+                          }}
+                          className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition ml-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {taskGroups.length === 0 ? (
+                      <p className="p-4 text-center text-xs text-slate-500">
+                        No task groups configured yet. Add your first preset
+                        above.
                       </p>
                     ) : null}
                   </div>

@@ -21,7 +21,12 @@ import {
 const nav = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/tasks", label: "Tasks", icon: Briefcase },
-  { href: "/admin/leads", label: "Leads", icon: UsersRound },
+  {
+    href: "/admin/leads",
+    label: "Leads",
+    icon: UsersRound,
+    superuserOnly: true,
+  },
   {
     href: "/admin/employees",
     label: "Employees",
@@ -107,7 +112,16 @@ function AdminShellInner({ children }: { children: ReactNode }) {
               <div className="text-right">
                 <p className="text-sm font-medium text-white">{user.name}</p>
                 <p className="text-xs text-slate-400">
-                  [{isSuperuser ? "Superuser" : "Employee"}]
+                  {isSuperuser ? (
+                    "[Superuser]"
+                  ) : (
+                    <span
+                      className="font-mono text-indigo-400 font-medium select-all"
+                      title={user.employeeId || user.id}
+                    >
+                      ID: {user.employeeId || user.id}
+                    </span>
+                  )}
                 </p>
               </div>
               <button

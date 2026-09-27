@@ -8,6 +8,7 @@ import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { BusinessTypeRepository } from "@/lib/repositories/BusinessTypeRepository";
 import { LanguageRepository } from "@/lib/repositories/LanguageRepository";
 import { RegionRepository } from "@/lib/repositories/RegionRepository";
+import { TaskGroupRepository } from "@/lib/repositories/TaskGroupRepository";
 import { TaskRepository } from "@/lib/repositories/TaskRepository";
 import { UserRepository } from "@/lib/repositories/UserRepository";
 import type { CurrentUser } from "@/lib/types";
@@ -35,6 +36,7 @@ export const TaskService = {
       businessTypeId?: string | null;
       languageId?: string | null;
       regionId?: string | null;
+      taskGroupId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;
@@ -81,6 +83,14 @@ export const TaskService = {
       }
     }
 
+    const taskGroupId = data.taskGroupId?.trim() || null;
+    if (taskGroupId) {
+      const tg = await TaskGroupRepository.findById(taskGroupId);
+      if (!tg) {
+        throw new BadRequestError("Selected task group does not exist");
+      }
+    }
+
     return TaskRepository.create({
       title,
       description: data.description?.trim() || null,
@@ -103,6 +113,7 @@ export const TaskService = {
         : {}),
       ...(languageId ? { language: { connect: { id: languageId } } } : {}),
       ...(regionId ? { region: { connect: { id: regionId } } } : {}),
+      ...(taskGroupId ? { taskGroup: { connect: { id: taskGroupId } } } : {}),
     });
   },
 
@@ -120,6 +131,7 @@ export const TaskService = {
       businessTypeId?: string | null;
       languageId?: string | null;
       regionId?: string | null;
+      taskGroupId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;
@@ -152,6 +164,7 @@ export const TaskService = {
         data.businessTypeId !== undefined ||
         data.languageId !== undefined ||
         data.regionId !== undefined ||
+        data.taskGroupId !== undefined ||
         data.priority !== undefined ||
         data.dueDate !== undefined ||
         data.contactDetail !== undefined ||
@@ -233,6 +246,20 @@ export const TaskService = {
       }
     }
 
+    let taskGroupUpdate = undefined;
+    if (data.taskGroupId !== undefined) {
+      const newTgId = data.taskGroupId?.trim() || null;
+      if (newTgId) {
+        const tg = await TaskGroupRepository.findById(newTgId);
+        if (!tg) {
+          throw new BadRequestError("Selected task group does not exist");
+        }
+        taskGroupUpdate = { connect: { id: newTgId } };
+      } else {
+        taskGroupUpdate = { disconnect: true };
+      }
+    }
+
     return TaskRepository.update(taskId, {
       ...(data.title !== undefined ? { title: data.title.trim() } : {}),
       ...(data.description !== undefined
@@ -266,6 +293,7 @@ export const TaskService = {
       ...(businessTypeUpdate ? { businessType: businessTypeUpdate } : {}),
       ...(languageUpdate ? { language: languageUpdate } : {}),
       ...(regionUpdate ? { region: regionUpdate } : {}),
+      ...(taskGroupUpdate ? { taskGroup: taskGroupUpdate } : {}),
     });
   },
 

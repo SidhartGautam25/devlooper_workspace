@@ -28,6 +28,7 @@ export const TaskController = {
         businessTypeId?: string | null;
         languageId?: string | null;
         regionId?: string | null;
+        taskGroupId?: string | null;
         contactDetail?: string | null;
         contactPhone?: string | null;
         contactEmail?: string | null;
@@ -42,6 +43,7 @@ export const TaskController = {
         businessTypeId: body.businessTypeId,
         languageId: body.languageId,
         regionId: body.regionId,
+        taskGroupId: body.taskGroupId,
         contactDetail: body.contactDetail,
         contactPhone: body.contactPhone,
         contactEmail: body.contactEmail,
@@ -66,6 +68,7 @@ export const TaskController = {
         businessTypeId?: string | null;
         languageId?: string | null;
         regionId?: string | null;
+        taskGroupId?: string | null;
         contactDetail?: string | null;
         contactPhone?: string | null;
         contactEmail?: string | null;

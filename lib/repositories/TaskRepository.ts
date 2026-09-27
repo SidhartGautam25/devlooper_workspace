@@ -17,6 +17,9 @@ const taskInclude = {
   region: {
     select: { id: true, name: true },
   },
+  taskGroup: {
+    select: { id: true, name: true },
+  },
 } satisfies Prisma.TaskInclude;
 
 export const TaskRepository = {

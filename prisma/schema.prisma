@@ -59,6 +59,7 @@ model User {
   createdTasks  Task[] @relation("CreatedTasks")
   assignedTasks Task[] @relation("AssignedTasks")
   assignedLeads Lead[] @relation("AssignedLeads")
+  taskGroups    TaskGroup[]
 
   @@index([role])
   @@index([email])
@@ -78,7 +79,8 @@ model BusinessType {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tasks Task[]
+  tasks      Task[]
+  taskGroups TaskGroup[]
 }
 
 model Language {
@@ -87,8 +89,9 @@ model Language {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tasks     Task[]
-  employees User[]
+  tasks      Task[]
+  employees  User[]
+  taskGroups TaskGroup[]
 }
 
 model Region {
@@ -97,8 +100,39 @@ model Region {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tasks     Task[]
-  employees User[]
+  tasks      Task[]
+  employees  User[]
+  taskGroups TaskGroup[]
+}
+
+model TaskGroup {
+  id             String        @id @default(uuid())
+  name           String        @unique
+  description    String?       @db.Text
+  priority       TaskPriority? @default(MEDIUM)
+
+  businessName   String?
+  businessTypeId String?
+  businessType   BusinessType? @relation(fields: [businessTypeId], references: [id], onDelete: SetNull)
+
+  languageId     String?
+  language       Language?     @relation(fields: [languageId], references: [id], onDelete: SetNull)
+
+  regionId       String?
+  region         Region?       @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
+  assignedToId   String?
+  assignedTo     User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  tasks          Task[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([businessTypeId])
+  @@index([languageId])
+  @@index([regionId])
+  @@index([assignedToId])
 }
 
 model Task {
@@ -108,6 +142,9 @@ model Task {
   status      TaskStatus   @default(TODO)
   priority    TaskPriority @default(MEDIUM)
   dueDate     DateTime?
+
+  taskGroupId    String?
+  taskGroup      TaskGroup?    @relation(fields: [taskGroupId], references: [id], onDelete: SetNull)
 
   businessName   String?
   businessTypeId String?
@@ -138,6 +175,7 @@ model Task {
 
   @@index([assignedToId])
   @@index([status])
+  @@index([taskGroupId])
   @@index([businessTypeId])
   @@index([languageId])
   @@index([regionId])

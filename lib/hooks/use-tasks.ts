@@ -21,7 +21,7 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: (data: {
       title: string;
-      description?: string;
+      description?: string | null;
       assignedToId?: string | null;
       priority?: TaskPriority;
       dueDate?: string | null;
@@ -29,6 +29,7 @@ export function useCreateTask() {
       businessTypeId?: string | null;
       languageId?: string | null;
       regionId?: string | null;
+      taskGroupId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;
@@ -63,6 +64,7 @@ export function useUpdateTask() {
       businessTypeId?: string | null;
       languageId?: string | null;
       regionId?: string | null;
+      taskGroupId?: string | null;
       contactDetail?: string | null;
       contactPhone?: string | null;
       contactEmail?: string | null;
