@@ -8,6 +8,9 @@ const taskInclude = {
   createdBy: {
     select: { id: true, name: true, email: true, role: true },
   },
+  businessType: {
+    select: { id: true, name: true },
+  },
 } satisfies Prisma.TaskInclude;
 
 export const TaskRepository = {

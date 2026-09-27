@@ -68,6 +68,21 @@ async function main() {
     });
   }
 
+  const bTypeCount = await prisma.businessType.count();
+  if (bTypeCount === 0) {
+    await prisma.businessType.createMany({
+      data: [
+        { name: "Technology & Software" },
+        { name: "Real Estate" },
+        { name: "E-commerce & Retail" },
+        { name: "Healthcare & Wellness" },
+        { name: "Financial Services" },
+        { name: "Marketing & Media" },
+      ],
+      skipDuplicates: true,
+    });
+  }
+
   const taskCount = await prisma.task.count();
   if (taskCount === 0) {
     await prisma.task.createMany({

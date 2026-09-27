@@ -5,6 +5,7 @@ import {
   apiFetch,
   type Task,
   type TaskPriority,
+  type TaskResult,
   type TaskStatus,
 } from "@/lib/api/client";
 
@@ -21,12 +22,52 @@ export function useCreateTask() {
     mutationFn: (data: {
       title: string;
       description?: string;
-      assignedToId: string;
-      priority: TaskPriority;
+      assignedToId?: string | null;
+      priority?: TaskPriority;
       dueDate?: string | null;
+      businessName?: string | null;
+      businessTypeId?: string | null;
+      contactDetail?: string | null;
+      contactPhone?: string | null;
+      contactEmail?: string | null;
     }) =>
-      apiFetch("/api/tasks", {
+      apiFetch<Task>("/api/tasks", {
         method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      void queryClient.invalidateQueries({ queryKey: ["stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string;
+      title?: string;
+      description?: string | null;
+      assignedToId?: string | null;
+      priority?: TaskPriority;
+      dueDate?: string | null;
+      status?: TaskStatus;
+      businessName?: string | null;
+      businessTypeId?: string | null;
+      contactDetail?: string | null;
+      contactPhone?: string | null;
+      contactEmail?: string | null;
+      callDuration?: string | null;
+      callDetail?: string | null;
+      result?: TaskResult | null;
+    }) =>
+      apiFetch<Task>(`/api/tasks/${id}`, {
+        method: "PATCH",
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
@@ -41,7 +82,7 @@ export function useUpdateTaskStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { id: string; status: TaskStatus }) =>
-      apiFetch(`/api/tasks/${data.id}`, {
+      apiFetch<Task>(`/api/tasks/${data.id}`, {
         method: "PATCH",
         body: JSON.stringify({ status: data.status }),
       }),
@@ -56,7 +97,9 @@ export function useDeleteTask() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/tasks/${id}`, { method: "DELETE" }),
+      apiFetch<{ id: string; deleted: boolean }>(`/api/tasks/${id}`, {
+        method: "DELETE",
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["tasks"] });
       void queryClient.invalidateQueries({ queryKey: ["stats"] });

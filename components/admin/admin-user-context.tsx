@@ -4,6 +4,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { Role } from "@/lib/api/client";
 
 export type AdminUser = {
+  id: string;
   name?: string | null;
   email?: string | null;
   role: Role;
@@ -18,7 +19,11 @@ export function AdminUserProvider({
   user: AdminUser;
   children: ReactNode;
 }) {
-  return <AdminUserContext.Provider value={user}>{children}</AdminUserContext.Provider>;
+  return (
+    <AdminUserContext.Provider value={user}>
+      {children}
+    </AdminUserContext.Provider>
+  );
 }
 
 export function useAdminUser() {

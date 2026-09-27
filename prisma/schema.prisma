@@ -56,6 +56,20 @@ model User {
   @@index([email])
 }
 
+enum TaskResult {
+  PASS
+  FAIL
+}
+
+model BusinessType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks Task[]
+}
+
 model Task {
   id          String       @id @default(uuid())
   title       String
@@ -64,17 +78,29 @@ model Task {
   priority    TaskPriority @default(MEDIUM)
   dueDate     DateTime?
 
+  businessName   String?
+  businessTypeId String?
+  businessType   BusinessType? @relation(fields: [businessTypeId], references: [id], onDelete: SetNull)
+  contactDetail  String?       @db.Text
+  contactPhone   String?
+  contactEmail   String?
+
+  callDuration String?
+  callDetail   String?     @db.Text
+  result       TaskResult?
+
   createdById String
   createdBy   User   @relation("CreatedTasks", fields: [createdById], references: [id], onDelete: Cascade)
 
-  assignedToId String
-  assignedTo   User   @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedTasks", fields: [assignedToId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([assignedToId])
   @@index([status])
+  @@index([businessTypeId])
 }
 
 model Lead {

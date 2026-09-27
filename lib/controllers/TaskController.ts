@@ -1,4 +1,4 @@
-import type { TaskPriority, TaskStatus } from "@prisma/client";
+import type { TaskPriority, TaskResult, TaskStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { handleRouteError, jsonSuccess } from "@/lib/http/response";
 import { requireCurrentUser } from "@/lib/http/session";
@@ -21,16 +21,26 @@ export const TaskController = {
       const body = (await request.json()) as {
         title?: string;
         description?: string;
-        assignedToId?: string;
+        assignedToId?: string | null;
         priority?: TaskPriority;
         dueDate?: string | null;
+        businessName?: string | null;
+        businessTypeId?: string | null;
+        contactDetail?: string | null;
+        contactPhone?: string | null;
+        contactEmail?: string | null;
       };
       const task = await TaskService.createTask(currentUser, {
         title: body.title ?? "",
         description: body.description,
-        assignedToId: body.assignedToId ?? "",
+        assignedToId: body.assignedToId,
         priority: body.priority,
         dueDate: body.dueDate,
+        businessName: body.businessName,
+        businessTypeId: body.businessTypeId,
+        contactDetail: body.contactDetail,
+        contactPhone: body.contactPhone,
+        contactEmail: body.contactEmail,
       });
       return jsonSuccess(task, 201);
     } catch (error) {
@@ -45,26 +55,18 @@ export const TaskController = {
         status?: TaskStatus;
         title?: string;
         description?: string | null;
-        assignedToId?: string;
+        assignedToId?: string | null;
         priority?: TaskPriority;
         dueDate?: string | null;
+        businessName?: string | null;
+        businessTypeId?: string | null;
+        contactDetail?: string | null;
+        contactPhone?: string | null;
+        contactEmail?: string | null;
+        callDuration?: string | null;
+        callDetail?: string | null;
+        result?: TaskResult | null;
       };
-
-      if (
-        body.status &&
-        body.title === undefined &&
-        body.description === undefined &&
-        body.assignedToId === undefined &&
-        body.priority === undefined &&
-        body.dueDate === undefined
-      ) {
-        const task = await TaskService.updateTaskStatus(
-          currentUser,
-          taskId,
-          body.status,
-        );
-        return jsonSuccess(task);
-      }
 
       const task = await TaskService.updateTask(currentUser, taskId, body);
       return jsonSuccess(task);

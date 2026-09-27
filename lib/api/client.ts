@@ -9,6 +9,18 @@ export type LeadStatus =
   | "CONVERTED"
   | "LOST";
 
+export type TaskResult = "PASS" | "FAIL";
+
+export type BusinessType = {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _count?: {
+    tasks: number;
+  };
+};
+
 export type Employee = {
   id: string;
   name: string;
@@ -29,11 +41,20 @@ export type Task = {
   status: TaskStatus;
   priority: TaskPriority;
   dueDate: string | null;
+  businessName: string | null;
+  businessTypeId: string | null;
+  businessType: { id: string; name: string } | null;
+  contactDetail: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  callDuration: string | null;
+  callDetail: string | null;
+  result: TaskResult | null;
   createdById: string;
-  assignedToId: string;
+  assignedToId: string | null;
   createdAt: string;
   updatedAt: string;
-  assignedTo: { id: string; name: string; email: string; role: Role };
+  assignedTo: { id: string; name: string; email: string; role: Role } | null;
   createdBy: { id: string; name: string; email: string; role: Role };
 };
 
