@@ -19,9 +19,11 @@ export const BusinessTypeRepository = {
   },
 
   findByName(name: string) {
-    return prisma.businessType.findUnique({
+    return prisma.businessType.findFirst({
       where: {
-        name: name.trim(),
+        name: {
+          equals: name.trim(),
+        },
       },
     });
   },

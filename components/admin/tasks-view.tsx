@@ -6,6 +6,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  FileText,
   Mail,
   Phone,
   PhoneCall,
@@ -13,6 +14,9 @@ import {
   Search,
   Tag,
   Trash2,
+  UserCheck,
+  UserPlus,
+  X,
   XCircle,
 } from "lucide-react";
 import { useAdminUser } from "@/components/admin/admin-user-context";
@@ -100,16 +104,8 @@ export function TasksView() {
   const [logCallTask, setLogCallTask] = useState<Task | null>(null);
   const [reassignTask, setReassignTask] = useState<Task | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
-
-  // Form error states
   const [error, setError] = useState<string | null>(null);
-  const [bTypeError, setBTypeError] = useState<string | null>(null);
   const [newBTypeName, setNewBTypeName] = useState("");
-
-  // In-form quick business type add
-  const [showQuickAddBType, setShowQuickAddBType] = useState(false);
-  const [quickBTypeName, setQuickBTypeName] = useState("");
-  const [selectedBTypeId, setSelectedBTypeId] = useState<string>("");
 
   const activeEmployees = employees.filter((employee) => employee.isActive);
 
@@ -166,34 +162,32 @@ export function TasksView() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => {
-              setBTypeError(null);
-              setNewBTypeName("");
-              setManageBTypesOpen(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700/80 transition"
-          >
-            <Tag className="h-4 w-4 text-indigo-400" />
-            Manage Business Types
-          </button>
-
           {isSuperuser ? (
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setBTypeError(null);
-                setShowQuickAddBType(false);
-                setSelectedBTypeId("");
-                setCreateOpen(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-400 transition"
-            >
-              <Plus className="h-4 w-4" />
-              Create Task
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setManageBTypesOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700/80 transition"
+              >
+                <Tag className="h-4 w-4 text-indigo-400" />
+                Manage Business Types
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setCreateOpen(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-400 transition"
+              >
+                <Plus className="h-4 w-4" />
+                Create Task
+              </button>
+            </>
           ) : null}
         </div>
       </div>
@@ -217,7 +211,9 @@ export function TasksView() {
         {/* Status Filter */}
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as typeof statusFilter)
+          }
           className="rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-2 text-xs text-white outline-none focus:border-indigo-400"
         >
           {statuses.map((status) => (
@@ -527,7 +523,8 @@ export function TasksView() {
                   title: String(form.get("title") ?? ""),
                   description: String(form.get("description") ?? ""),
                   businessName: String(form.get("businessName") ?? ""),
-                  businessTypeId: selectedBTypeId || null,
+                  businessTypeId:
+                    String(form.get("businessTypeId") ?? "") || null,
                   contactPhone: String(form.get("contactPhone") ?? ""),
                   contactEmail: String(form.get("contactEmail") ?? ""),
                   contactDetail: String(form.get("contactDetail") ?? ""),
@@ -572,75 +569,17 @@ export function TasksView() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
-                    Business Type
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBTypeError(null);
-                      setShowQuickAddBType(!showQuickAddBType);
-                    }}
-                    className="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 underline"
-                  >
-                    {showQuickAddBType ? "Cancel" : "+ Add new"}
-                  </button>
-                </div>
-
-                {showQuickAddBType ? (
-                  <div className="mt-1 flex gap-2">
-                    <input
-                      type="text"
-                      value={quickBTypeName}
-                      onChange={(e) => setQuickBTypeName(e.target.value)}
-                      placeholder="e.g. Real Estate"
-                      className="w-full rounded-xl border border-indigo-500/60 bg-slate-800 px-3 py-1.5 text-xs text-white outline-none focus:border-indigo-400"
-                    />
-                    <button
-                      type="button"
-                      disabled={createBusinessType.isPending}
-                      onClick={async () => {
-                        if (!quickBTypeName.trim()) return;
-                        setBTypeError(null);
-                        try {
-                          const created =
-                            await createBusinessType.mutateAsync({
-                              name: quickBTypeName.trim(),
-                            });
-                          setSelectedBTypeId(created.id);
-                          setQuickBTypeName("");
-                          setShowQuickAddBType(false);
-                        } catch (err) {
-                          setBTypeError(
-                            err instanceof Error
-                              ? err.message
-                              : "Failed to add business type",
-                          );
-                        }
-                      }}
-                      className="shrink-0 rounded-xl bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-60 transition"
-                    >
-                      {createBusinessType.isPending ? "Adding…" : "Save"}
-                    </button>
-                  </div>
-                ) : (
-                  <select
-                    value={selectedBTypeId}
-                    onChange={(e) => setSelectedBTypeId(e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">-- Select Business Type --</option>
-                    {businessTypes.map((bt) => (
-                      <option key={bt.id} value={bt.id}>
-                        {bt.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {bTypeError ? (
-                  <p className="mt-1 text-xs text-rose-400">{bTypeError}</p>
-                ) : null}
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                  Business Type
+                </label>
+                <select name="businessTypeId" className={inputClass}>
+                  <option value="">-- Select Business Type --</option>
+                  {businessTypes.map((bt) => (
+                    <option key={bt.id} value={bt.id}>
+                      {bt.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -768,21 +707,18 @@ export function TasksView() {
         </Modal>
       ) : null}
 
-      {/* 2. Modal: Manage Business Types */}
+      {/* 2. Modal: Manage Business Types (Superuser) */}
       {manageBTypesOpen ? (
         <Modal
           title="Manage Business Types"
-          onClose={() => {
-            setManageBTypesOpen(false);
-            setBTypeError(null);
-          }}
+          onClose={() => setManageBTypesOpen(false)}
         >
           <div className="space-y-5">
             {/* Create new business type */}
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                setBTypeError(null);
+                setError(null);
                 if (!newBTypeName.trim()) return;
 
                 try {
@@ -791,7 +727,7 @@ export function TasksView() {
                   });
                   setNewBTypeName("");
                 } catch (err) {
-                  setBTypeError(
+                  setError(
                     err instanceof Error
                       ? err.message
                       : "Failed to create business type",
@@ -822,15 +758,15 @@ export function TasksView() {
               </div>
             </form>
 
-            {bTypeError ? (
+            {error ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
-                {bTypeError}
+                {error}
               </div>
             ) : null}
 
             {/* List existing */}
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
                 Available Business Types ({businessTypes.length})
               </p>
               <div className="max-h-60 overflow-y-auto divide-y divide-slate-800/80 rounded-xl border border-slate-800 bg-slate-900/60">
@@ -848,25 +784,23 @@ export function TasksView() {
                         </span>
                       ) : null}
                     </div>
-                    {isSuperuser ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            await deleteBusinessType.mutateAsync(bt.id);
-                          } catch (err) {
-                            setBTypeError(
-                              err instanceof Error
-                                ? err.message
-                                : "Failed to delete business type",
-                            );
-                          }
-                        }}
-                        className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await deleteBusinessType.mutateAsync(bt.id);
+                        } catch (err) {
+                          setError(
+                            err instanceof Error
+                              ? err.message
+                              : "Failed to delete business type",
+                          );
+                        }
+                      }}
+                      className="rounded-lg p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 ))}
                 {businessTypes.length === 0 ? (
@@ -1108,7 +1042,7 @@ export function TasksView() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-                <span className="block text-[11px] uppercase tracking-wider text-slate-400">
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 block">
                   Outcome Result
                 </span>
                 <div className="mt-1">
@@ -1121,20 +1055,20 @@ export function TasksView() {
               </div>
 
               <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-                <span className="block text-[11px] uppercase tracking-wider text-slate-400">
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 block">
                   Call Duration
                 </span>
-                <span className="mt-1 block text-sm font-medium text-white">
+                <span className="text-sm font-medium text-white mt-1 block">
                   {detailTask.callDuration || "Not recorded"}
                 </span>
               </div>
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5">
-              <span className="mb-1.5 block text-[11px] uppercase tracking-wider text-slate-400">
+              <span className="text-[11px] uppercase tracking-wider text-slate-400 block mb-1.5">
                 Discussion Notes
               </span>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">
+              <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
                 {detailTask.callDetail || "No call notes available."}
               </p>
             </div>

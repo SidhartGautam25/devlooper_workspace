@@ -12,8 +12,8 @@ export const BusinessTypeService = {
   },
 
   async createBusinessType(currentUser: CurrentUser, rawName: string) {
-    if (currentUser.role !== Role.SUPERUSER && currentUser.role !== Role.EMPLOYEE) {
-      throw new ForbiddenError("You must be an employee or superuser to create business types");
+    if (currentUser.role !== Role.SUPERUSER) {
+      throw new ForbiddenError("Only superusers can create business types");
     }
 
     const name = rawName?.trim();
