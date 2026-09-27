@@ -3,13 +3,22 @@
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -18,7 +27,9 @@ export function LoginForm() {
     setError(null);
 
     const result = await signIn("credentials", {
-      email: String(form.get("email") ?? ""),
+      email: String(form.get("email") ?? "")
+        .trim()
+        .toLowerCase(),
       password: String(form.get("password") ?? ""),
       redirect: false,
     });
@@ -26,7 +37,7 @@ export function LoginForm() {
     setPending(false);
 
     if (result?.error) {
-      setError("Invalid credentials or inactive account.");
+      setError("Invalid email, password, or account is currently inactive.");
       return;
     }
 
@@ -36,52 +47,122 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0F172A] px-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#1E293B] p-8 shadow-2xl">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-indigo-300">
-          Agency OS
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">Sign in</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Access the CRM and task console with your agency credentials.
-        </p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0A0F1D] px-4 py-12 selection:bg-indigo-500 selection:text-white">
+      {/* Background ambient decorative glows */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-gradient-to-tr from-indigo-600/20 to-purple-600/20 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 right-10 h-[400px] w-[400px] rounded-full bg-blue-600/10 blur-[100px]" />
 
-        <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-          {error ? (
-            <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-              {error}
+      <div className="relative w-full max-w-md">
+        {/* Main card */}
+        <div className="overflow-hidden rounded-3xl border border-slate-800/80 bg-[#131B2E]/90 p-8 shadow-2xl backdrop-blur-xl sm:p-10">
+          {/* Brand header */}
+          <div className="text-center sm:text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
+              <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+              DevLooper Studio
             </div>
-          ) : null}
-          <label className="block text-sm text-slate-300">
-            Email
-            <input
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              defaultValue="admin@agency.com"
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white outline-none focus:border-indigo-400"
-            />
-          </label>
-          <label className="block text-sm text-slate-300">
-            Password
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-white outline-none focus:border-indigo-400"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 py-2.5 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-60"
-          >
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {pending ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Workspace Console
+            </h1>
+            <p className="mt-2 text-sm text-slate-400">
+              Sign in with your team credentials to access CRM, tasks, and
+              client operations.
+            </p>
+          </div>
+
+          <form className="mt-8 space-y-5" onSubmit={onSubmit}>
+            {error ? (
+              <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm text-rose-300">
+                <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
+                <span>{error}</span>
+              </div>
+            ) : null}
+
+            {/* Email input */}
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                Email address
+              </label>
+              <div className="relative mt-1.5">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                  <Mail className="h-4 w-4" />
+                </div>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="admin@devlooperstudio.com"
+                  className="w-full rounded-xl border border-slate-700/80 bg-slate-900/80 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+            </div>
+
+            {/* Password input */}
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-300">
+                Password
+              </label>
+              <div className="relative mt-1.5">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                  <Lock className="h-4 w-4" />
+                </div>
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••••••"
+                  className="w-full rounded-xl border border-slate-700/80 bg-slate-900/80 py-2.5 pl-10 pr-11 text-sm text-white placeholder-slate-500 shadow-inner outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-200 transition"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="submit"
+              disabled={pending}
+              className="group relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:from-indigo-400 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4 transition group-hover:scale-110" />
+              )}
+              {pending ? "Authenticating…" : "Sign In to Workspace"}
+            </button>
+          </form>
+
+          {/* Access policy & signup guidance */}
+          <div className="mt-8 border-t border-slate-800/80 pt-6">
+            <div className="rounded-xl border border-slate-800/70 bg-slate-900/50 p-3.5 text-xs leading-relaxed text-slate-400">
+              <span className="font-semibold text-slate-300">
+                Employee & Team Access:
+              </span>{" "}
+              Accounts are provisioned and managed directly by the DevLooper
+              Studio Superuser. If you are a new team member or need a password
+              reset, please contact your workspace administrator.
+            </div>
+          </div>
+        </div>
+
+        {/* Footer label */}
+        <p className="mt-6 text-center text-xs text-slate-500">
+          DevLooper Studio Workspace &copy; {new Date().getFullYear()} &bull;
+          Authorized Personnel Only
+        </p>
       </div>
     </div>
   );

@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Agency CRM",
-  description: "Agency CRM and task management admin panel",
+  title: "DevLooper Studio Workspace",
+  description:
+    "DevLooper Studio Workspace - CRM, Employee & Task Management Console",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

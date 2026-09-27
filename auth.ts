@@ -4,6 +4,16 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 
+if (process.env.NODE_ENV === "development") {
+  if (
+    !process.env.AUTH_URL ||
+    process.env.AUTH_URL.includes("workspace.devlooperstudio.com")
+  ) {
+    process.env.AUTH_URL = process.env.AUTH_URL_DEV || "http://localhost:3000";
+    process.env.NEXTAUTH_URL = process.env.AUTH_URL;
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
@@ -55,9 +65,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = typeof token.id === "string" ? token.id : (token.sub ?? "");
+        session.user.id =
+          typeof token.id === "string" ? token.id : (token.sub ?? "");
         session.user.role =
-          token.role === "SUPERUSER" || token.role === "EMPLOYEE" || token.role === "USER"
+          token.role === "SUPERUSER" ||
+          token.role === "EMPLOYEE" ||
+          token.role === "USER"
             ? token.role
             : Role.USER;
         if (typeof token.name === "string") {

@@ -1,27 +1,55 @@
 import bcrypt from "bcryptjs";
-import { LeadStatus, PrismaClient, Role, TaskPriority, TaskStatus } from "@prisma/client";
+import {
+  LeadStatus,
+  PrismaClient,
+  Role,
+  TaskPriority,
+  TaskStatus,
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const superuserName = process.env.SUPERUSER_NAME || "DevLooper Admin";
+  const superuserEmail = (
+    process.env.SUPERUSER_EMAIL || "admin@devlooperstudio.com"
+  )
+    .toLowerCase()
+    .trim();
+  const superuserPassword =
+    process.env.SUPERUSER_PASSWORD || "DevLooper@Admin2026!";
+  const superuserPhone = process.env.SUPERUSER_PHONE || "+1 (555) 010-0001";
+
+  const passwordHash = await bcrypt.hash(superuserPassword, 10);
+
   const existingSuperuser = await prisma.user.findFirst({
-    where: { role: Role.SUPERUSER },
+    where: {
+      OR: [{ role: Role.SUPERUSER }, { email: superuserEmail }],
+    },
   });
 
-  const passwordHash = await bcrypt.hash("Password@123", 10);
-
-  const superuser =
-    existingSuperuser ??
-    (await prisma.user.create({
-      data: {
-        name: "System Administrator",
-        email: "admin@agency.com",
-        passwordHash,
-        role: Role.SUPERUSER,
-        phone: "+1 (555) 010-0001",
-        isActive: true,
-      },
-    }));
+  const superuser = existingSuperuser
+    ? await prisma.user.update({
+        where: { id: existingSuperuser.id },
+        data: {
+          name: superuserName,
+          email: superuserEmail,
+          passwordHash,
+          role: Role.SUPERUSER,
+          phone: superuserPhone,
+          isActive: true,
+        },
+      })
+    : await prisma.user.create({
+        data: {
+          name: superuserName,
+          email: superuserEmail,
+          passwordHash,
+          role: Role.SUPERUSER,
+          phone: superuserPhone,
+          isActive: true,
+        },
+      });
 
   let employee = await prisma.user.findUnique({
     where: { email: "employee@agency.com" },
@@ -46,7 +74,8 @@ async function main() {
       data: [
         {
           title: "Kickoff website redesign",
-          description: "Prepare sitemap and first-pass wireframes for the new marketing site.",
+          description:
+            "Prepare sitemap and first-pass wireframes for the new marketing site.",
           status: TaskStatus.IN_PROGRESS,
           priority: TaskPriority.HIGH,
           dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5),
@@ -123,7 +152,13 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error(error);
+    if (error?.code === "P2021") {
+      console.error(
+        "\n❌ Database tables do not exist yet! Run `pnpm db:push` first to create the tables in MySQL, then re-run seed.\n",
+      );
+    } else {
+      console.error(error);
+    }
     process.exit(1);
   })
   .finally(async () => {

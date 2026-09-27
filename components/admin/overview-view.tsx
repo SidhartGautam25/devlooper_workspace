@@ -51,7 +51,7 @@ export function OverviewView() {
         <h2 className="text-2xl font-semibold text-white">Overview</h2>
         <p className="mt-1 text-sm text-slate-400">
           {isSuperuser
-            ? "Agency-wide delivery and pipeline at a glance."
+            ? "Workspace-wide delivery and pipeline at a glance."
             : "Your assigned work and pipeline."}
         </p>
       </div>
@@ -81,10 +81,15 @@ export function OverviewView() {
           <h3 className="text-sm font-semibold text-white">Recent tasks</h3>
           <ul className="mt-4 space-y-3">
             {tasks.slice(0, 5).map((task) => (
-              <li key={task.id} className="flex items-center justify-between gap-3">
+              <li
+                key={task.id}
+                className="flex items-center justify-between gap-3"
+              >
                 <div>
                   <p className="text-sm text-slate-100">{task.title}</p>
-                  <p className="text-xs text-slate-400">{task.assignedTo.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {task.assignedTo.name}
+                  </p>
                 </div>
                 <Badge value={task.status} />
               </li>
@@ -98,10 +103,15 @@ export function OverviewView() {
           <h3 className="text-sm font-semibold text-white">Recent leads</h3>
           <ul className="mt-4 space-y-3">
             {leads.slice(0, 5).map((lead) => (
-              <li key={lead.id} className="flex items-center justify-between gap-3">
+              <li
+                key={lead.id}
+                className="flex items-center justify-between gap-3"
+              >
                 <div>
                   <p className="text-sm text-slate-100">{lead.name}</p>
-                  <p className="text-xs text-slate-400">{lead.service ?? lead.source ?? "—"}</p>
+                  <p className="text-xs text-slate-400">
+                    {lead.service ?? lead.source ?? "—"}
+                  </p>
                 </div>
                 <Badge value={lead.status} />
               </li>

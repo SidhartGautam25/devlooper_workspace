@@ -12,13 +12,22 @@ import {
   UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AdminUserProvider, useAdminUser, type AdminUser } from "@/components/admin/admin-user-context";
+import {
+  AdminUserProvider,
+  useAdminUser,
+  type AdminUser,
+} from "@/components/admin/admin-user-context";
 
 const nav = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/admin/tasks", label: "Tasks", icon: Briefcase },
   { href: "/admin/leads", label: "Leads", icon: UsersRound },
-  { href: "/admin/employees", label: "Employees", icon: Users, superuserOnly: true },
+  {
+    href: "/admin/employees",
+    label: "Employees",
+    icon: Users,
+    superuserOnly: true,
+  },
 ];
 
 export function AdminShell({
@@ -45,10 +54,12 @@ function AdminShellInner({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r border-slate-800 bg-[#1E293B] md:flex md:flex-col">
           <div className="border-b border-slate-800 px-5 py-6">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-indigo-300">
-              Agency OS
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">
+              DevLooper Studio
             </p>
-            <h1 className="mt-1 text-lg font-semibold text-white">CRM Console</h1>
+            <h1 className="mt-1 text-lg font-semibold text-white">
+              Workspace Console
+            </h1>
           </div>
           <nav className="flex flex-1 flex-col gap-1 p-3">
             {nav

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Agency CRM",
+  title: "DevLooper Studio Workspace",
 };
 
 export default function AdminRootLayout({ children }: { children: ReactNode }) {
