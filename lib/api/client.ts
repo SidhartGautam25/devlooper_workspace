@@ -155,6 +155,66 @@ export type Lead = {
   } | null;
 };
 
+export type ArticleStatus = "DRAFT" | "PUBLISHED";
+export type HeadingLevel = 1 | 2 | 3 | 4;
+
+export type ArticleBlock =
+  | { id: string; type: "heading"; level: HeadingLevel; text: string; tocLabel?: string }
+  | { id: string; type: "paragraph"; html: string }
+  | { id: string; type: "code"; language: string; code: string }
+  | { id: string; type: "image"; url: string; alt: string; caption?: string };
+
+export type ArticleTocItem = {
+  id: string;
+  title: string;
+  level: HeadingLevel;
+};
+
+export type TechStack = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt?: string;
+  _count?: { articles: number };
+};
+
+export type ArticleAuthor = {
+  id?: string;
+  name: string;
+  email?: string;
+};
+
+export type ArticleSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  heroImageUrl: string | null;
+  language: string | null;
+  authorName?: string | null;
+  status: ArticleStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  authors: ArticleAuthor[];
+  techStacks: TechStack[];
+  toc: ArticleTocItem[];
+};
+
+export type Article = ArticleSummary & {
+  content: { blocks: ArticleBlock[] };
+  relatedArticles: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    excerpt: string | null;
+    heroImageUrl: string | null;
+    status?: ArticleStatus;
+  }>;
+  relatedIds?: string[];
+  techStackIds?: string[];
+};
+
 export type DashboardStats = {
   totalLeads: number;
   totalTasks: number;

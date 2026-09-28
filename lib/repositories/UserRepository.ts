@@ -61,6 +61,18 @@ export const UserRepository = {
     return prisma.user.count({ where: { role } });
   },
 
+  listAuthors() {
+    return prisma.user.findMany({
+      where: { role: "SUPERUSER", isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: { name: "asc" },
+    });
+  },
+
   create(data: Prisma.UserCreateInput) {
     return prisma.user.create({ data });
   },

@@ -265,6 +265,16 @@ async function main() {
     });
   }
 
+  const stacks = ["Next.js", "React", "Prisma", "TypeScript"];
+  for (const name of stacks) {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    await prisma.techStack.upsert({
+      where: { slug },
+      update: {},
+      create: { name, slug },
+    });
+  }
+
   console.log("Seed complete:", {
     superuser: superuser.email,
     employee: employee.email,

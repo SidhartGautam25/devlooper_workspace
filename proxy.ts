@@ -25,9 +25,13 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/admin/employees") && role !== "SUPERUSER") {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
+
+    if (pathname.startsWith("/admin/articles") && role !== "SUPERUSER") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
   }
 
-  if (pathname.startsWith("/api/employees")) {
+  if (pathname.startsWith("/api/employees") || pathname.startsWith("/api/articles") || pathname.startsWith("/api/tech-stacks")) {
     if (!isLoggedIn) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -46,5 +50,14 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*", "/api/employees", "/api/employees/:path*"],
+  matcher: [
+    "/admin",
+    "/admin/:path*",
+    "/api/employees",
+    "/api/employees/:path*",
+    "/api/articles",
+    "/api/articles/:path*",
+    "/api/tech-stacks",
+    "/api/tech-stacks/:path*",
+  ],
 };

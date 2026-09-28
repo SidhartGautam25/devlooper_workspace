@@ -21,6 +21,8 @@ const styles: Record<string, string> = {
   FAIL: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
   UNASSIGNED: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
   PENDING: "bg-slate-700/60 text-slate-400 border border-slate-700",
+  DRAFT: "bg-slate-700 text-slate-200",
+  PUBLISHED: "bg-emerald-500/20 text-emerald-300",
 };
 
 export function Badge({

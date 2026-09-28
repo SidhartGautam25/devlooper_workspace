@@ -63,6 +63,7 @@ model User {
   assignedTasks Task[] @relation("AssignedTasks")
   assignedLeads Lead[] @relation("AssignedLeads")
   taskGroups    TaskGroup[]
+  articleAuthors ArticleAuthor[]
 
   @@index([role])
   @@index([email])
@@ -228,4 +229,75 @@ model Lead {
   @@index([status])
   @@index([createdAt])
   @@index([packageId])
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model TechStack {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles ArticleTechStack[]
+}
+
+model Article {
+  id           String        @id @default(uuid())
+  slug         String        @unique
+  title        String
+  excerpt      String?       @db.Text
+  heroImageUrl String?
+  language     String?
+  authorName   String?
+  content      Json
+  status       ArticleStatus @default(DRAFT)
+  publishedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  authors    ArticleAuthor[]
+  techStacks ArticleTechStack[]
+  relatedFrom ArticleRelation[] @relation("RelatedFrom")
+  relatedTo   ArticleRelation[] @relation("RelatedTo")
+
+  @@index([status])
+  @@index([slug])
+  @@index([language])
+  @@index([publishedAt])
+}
+
+model ArticleAuthor {
+  articleId String
+  userId    String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, userId])
+  @@index([userId])
+}
+
+model ArticleTechStack {
+  articleId   String
+  techStackId String
+  article     Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  techStack   TechStack @relation(fields: [techStackId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, techStackId])
+  @@index([techStackId])
+}
+
+model ArticleRelation {
+  articleId String
+  relatedId String
+  article   Article @relation("RelatedFrom", fields: [articleId], references: [id], onDelete: Cascade)
+  related   Article @relation("RelatedTo", fields: [relatedId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, relatedId])
+  @@index([relatedId])
 }

@@ -8,6 +8,7 @@ import {
   Briefcase,
   LayoutDashboard,
   LogOut,
+  Newspaper,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -25,6 +26,12 @@ const nav = [
     href: "/admin/leads",
     label: "Leads",
     icon: UsersRound,
+    superuserOnly: true,
+  },
+  {
+    href: "/admin/articles",
+    label: "Articles",
+    icon: Newspaper,
     superuserOnly: true,
   },
   {

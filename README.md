@@ -204,3 +204,89 @@ Add extra origins as a comma-separated list, for example:
 ```bash
 ALLOWED_FRONTEND_ORIGIN="https://devlooperstudio.com,https://www.devlooperstudio.com"
 ```
+
+---
+
+## Articles API (public)
+
+The workspace editor is superuser-only at `/admin/articles`. The marketing site can read **published** articles over CORS.
+
+Set `NEXT_PUBLIC_BACKEND_API_URL=https://workspace.devlooperstudio.com` on `devlooperstudio.com`.
+
+Optional image host prefix if FTP URLs are relative (`/assets/...`):
+
+```bash
+NEXT_PUBLIC_ASSET_BASE_URL="https://devlooperstudio.com"
+```
+
+### List articles
+
+`GET /api/public/articles`
+
+Query params:
+
+| Param | Example | Description |
+|---|---|---|
+| `techStack` | `next-js` or `Next.js` | Filter by tech stack slug or name |
+| `language` | `TypeScript` | Filter by article language |
+| `q` | `prisma` | Search title and excerpt |
+
+```http
+GET /api/public/articles?techStack=next-js
+Origin: https://devlooperstudio.com
+```
+
+List items include title, slug, excerpt, hero image, authors, tech stacks, dates, related summaries, and `toc` (sidebar topics). Full body is omitted.
+
+### One article
+
+`GET /api/public/articles/:slug`
+
+Returns the full block body plus:
+
+- `heroImageUrl` — full-width hero
+- `authorName` — free-text byline
+- `authors[]` — `[{ name }]` (same value as `authorName`)
+- `publishedAt` / `updatedAt`
+- `language`
+- `techStacks[]`
+- `toc[]` — `{ id, title, level }` for a sticky topic sidebar (`id` matches heading blocks). `title` is `tocLabel` if set, otherwise the heading text.
+- `content.blocks` — ordered article body
+- `relatedArticles[]` — linked posts
+
+**Block types**
+
+```ts
+type ArticleBlock =
+  | { id: string; type: "heading"; level: 1 | 2 | 3 | 4; text: string; tocLabel?: string }
+  | { id: string; type: "paragraph"; html: string } // mixed sizes via inline font-size; highlight colors via <mark style="background-color">
+  | { id: string; type: "code"; language: string; code: string }
+  | { id: string; type: "image"; url: string; alt: string; caption?: string };
+```
+
+Use heading `id` as DOM ids. Show `toc.title` in the sidebar (it can differ from the in-article heading). Highlight the TOC item whose heading is currently in view (Intersection Observer).
+
+### Tech stacks
+
+`GET /api/public/tech-stacks`
+
+Use this to render filter chips on the blog index.
+
+### Frontend fetch example
+
+```ts
+const backend = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+
+export async function listArticles(techStack?: string) {
+  const url = new URL(`${backend}/api/public/articles`);
+  if (techStack) url.searchParams.set("techStack", techStack);
+  const response = await fetch(url.toString());
+  return response.json();
+}
+
+export async function getArticle(slug: string) {
+  const response = await fetch(`${backend}/api/public/articles/${slug}`);
+  return response.json();
+}
+```
+
