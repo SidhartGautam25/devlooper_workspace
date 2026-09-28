@@ -11,9 +11,15 @@ importers:
       '@prisma/client':
         specifier: ^6.19.1
         version: 6.19.1(prisma@6.19.1(typescript@5.9.3))(typescript@5.9.3)
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.3.3
       '@tanstack/react-query':
         specifier: ^5.104.0
         version: 5.104.0(react@19.2.8)
+      basic-ftp:
+        specifier: ^6.2.1
+        version: 6.2.1
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -29,6 +35,9 @@ importers:
       next-auth:
         specifier: 5.0.0-beta.32
         version: 5.0.0-beta.32(next@16.3.6(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+      postcss:
+        specifier: ^8.5.2
+        version: 8.5.28
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -38,13 +47,13 @@ importers:
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
+      tailwindcss:
+        specifier: ^4
+        version: 4.3.3
       zod:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
-      '@tailwindcss/postcss':
-        specifier: ^4
-        version: 4.3.3
       '@types/node':
         specifier: ^20
         version: 20.19.43
@@ -63,9 +72,6 @@ importers:
       prisma:
         specifier: 6.19.1
         version: 6.19.1(typescript@5.9.3)
-      tailwindcss:
-        specifier: ^4
-        version: 4.3.3
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
@@ -1081,6 +1087,10 @@ packages:
     resolution: {integrity: sha512-GLQdD3y6UF8iVuMJl5fHgE4jdn/ua7n+toKfLgNlg3BqQtOZjpy68T8Tup8/wGWZCDlm7KMg7tPb4MPn7oN0TQ==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  basic-ftp@6.2.1:
+    resolution: {integrity: sha512-bK67isD+lKq46AU8vNtjvMaT2ZqAOAmNCbxUHlFBRD4k15NWxyEjmaKtZPlgce58So4BNTjITGQOVTjL9y0ECA==}
+    engines: {node: '>=10.0.0'}
 
   bcryptjs@3.0.3:
     resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
@@ -3285,6 +3295,8 @@ snapshots:
   balanced-match@4.0.4: {}
 
   baseline-browser-mapping@2.11.26: {}
+
+  basic-ftp@6.2.1: {}
 
   bcryptjs@3.0.3: {}
 

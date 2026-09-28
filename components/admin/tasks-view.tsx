@@ -75,12 +75,7 @@ const priorities: Array<TaskPriority | "ALL"> = [
   "HIGH",
   "URGENT",
 ];
-const results: Array<TaskResult | "PENDING" | "ALL"> = [
-  "ALL",
-  "PASS",
-  "FAIL",
-  "PENDING",
-];
+type TaskResultFilter = TaskResult | "PENDING" | "ALL";
 const allStatuses: TaskStatus[] = [
   "TODO",
   "IN_PROGRESS",
@@ -126,8 +121,7 @@ export function TasksView() {
     useState<(typeof statuses)[number]>("ALL");
   const [priorityFilter, setPriorityFilter] =
     useState<(typeof priorities)[number]>("ALL");
-  const [resultFilter, setResultFilter] =
-    useState<(typeof results)[number]>("ALL");
+  const [resultFilter, setResultFilter] = useState<TaskResultFilter>("ALL");
   const [bTypeFilter, setBTypeFilter] = useState<string>("ALL");
   const [languageFilter, setLanguageFilter] = useState<string>("ALL");
   const [regionFilter, setRegionFilter] = useState<string>("ALL");
