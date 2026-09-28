@@ -1,6 +1,7 @@
 import dns from "node:dns/promises";
+import fs from "node:fs/promises";
 import path from "path";
-import { Readable } from "stream";
+import { Readable, Writable } from "stream";
 import * as ftp from "basic-ftp";
 import { AppError } from "@/lib/errors";
 
@@ -17,9 +18,42 @@ export interface IStorageService {
     originalName?: string,
   ): Promise<UploadResult>;
   deleteFile(fileUrlOrName: string): Promise<void>;
+  downloadFile(
+    fileUrlOrName: string,
+  ): Promise<{ buffer: Buffer; contentType: string } | null>;
 }
 
-async function resolveFtpHost(host: string): Promise<{ host: string; logs: string[] }> {
+export function getMimeType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  switch (ext) {
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".webp":
+      return "image/webp";
+    case ".gif":
+      return "image/gif";
+    case ".svg":
+      return "image/svg+xml";
+    case ".avif":
+      return "image/avif";
+    case ".ico":
+      return "image/x-icon";
+    case ".bmp":
+      return "image/bmp";
+    case ".tiff":
+    case ".tif":
+      return "image/tiff";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+async function resolveFtpHost(
+  host: string,
+): Promise<{ host: string; logs: string[] }> {
   const logs: string[] = [];
   if (process.env.FTP_FORCE_IPV4 === "false") {
     return { host, logs };
@@ -75,7 +109,6 @@ function formatFtpError(error: unknown, host: string, port: number): string {
 function configureClient(): ftp.Client {
   const client = new ftp.Client(20000);
   client.ftp.verbose = process.env.FTP_DEBUG === "true";
-  // Prefer PASV over EPSV — some Hostinger accounts return 504 on EPSV.
   client.ftp.ipFamily = 4;
   return client;
 }
@@ -189,9 +222,24 @@ export class FtpStorageService implements IStorageService {
         .toString(36)
         .substring(2, 9)}${ext.toLowerCase()}`;
 
+      // 1. Upload to remote FTP storage
       await ensureFtpDir(client, this.remotePath, logs);
       const stream = Readable.from(buffer);
       await client.uploadFrom(stream, uniqueName);
+
+      // 2. Cache locally on server disk for immediate, zero-latency serving by Next.js
+      try {
+        const localDirs = [
+          path.join(process.cwd(), "public", folder),
+          path.join(process.cwd(), "public", "assets"),
+        ];
+        for (const dir of localDirs) {
+          await fs.mkdir(dir, { recursive: true });
+          await fs.writeFile(path.join(dir, uniqueName), buffer);
+        }
+      } catch (cacheErr) {
+        console.warn("[FtpStorageService] Local cache write error:", cacheErr);
+      }
 
       return {
         url: `/${folder}/${uniqueName}`,
@@ -224,11 +272,81 @@ export class FtpStorageService implements IStorageService {
       const filename = path.basename(fileUrlOrName);
       await cdFtpDir(client, this.remotePath);
       await client.remove(filename);
+
+      // Clean local cache files if present
+      try {
+        const localCandidates = [
+          path.join(process.cwd(), "public", "assets", filename),
+          path.join(process.cwd(), "public", "images", filename),
+        ];
+        for (const lp of localCandidates) {
+          await fs.unlink(lp).catch(() => {});
+        }
+      } catch {}
     } catch (error) {
       console.warn(
         `[FtpStorageService] Could not delete file '${fileUrlOrName}':`,
         error,
       );
+    } finally {
+      client?.close();
+    }
+  }
+
+  async downloadFile(
+    fileUrlOrName: string,
+  ): Promise<{ buffer: Buffer; contentType: string } | null> {
+    if (!fileUrlOrName) return null;
+    const filename = path.basename(fileUrlOrName);
+    const contentType = getMimeType(filename);
+
+    // 1. Check local cache first (instant hit)
+    const localCandidates = [
+      path.join(process.cwd(), "public", "assets", filename),
+      path.join(process.cwd(), "public", "images", filename),
+    ];
+    for (const localPath of localCandidates) {
+      try {
+        const buf = await fs.readFile(localPath);
+        return { buffer: buf, contentType };
+      } catch {}
+    }
+
+    // 2. Fetch from FTP storage if not cached locally
+    if (!this.host || !this.user || !this.password) {
+      return null;
+    }
+
+    let client: ftp.Client | null = null;
+    try {
+      client = await this.connect();
+      await cdFtpDir(client, this.remotePath);
+
+      const chunks: Buffer[] = [];
+      const writable = new Writable({
+        write(chunk, encoding, callback) {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          callback();
+        },
+      });
+
+      await client.downloadTo(writable, filename);
+      const buffer = Buffer.concat(chunks);
+
+      // Save to local cache so subsequent requests are served instantly without hitting FTP again
+      try {
+        const localDir = path.join(process.cwd(), "public", "assets");
+        await fs.mkdir(localDir, { recursive: true });
+        await fs.writeFile(path.join(localDir, filename), buffer);
+      } catch {}
+
+      return { buffer, contentType };
+    } catch (error) {
+      console.warn(
+        `[FtpStorageService] File '${filename}' not found or download failed from FTP:`,
+        error,
+      );
+      return null;
     } finally {
       client?.close();
     }
