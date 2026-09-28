@@ -70,10 +70,13 @@ export function useSaveArticle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { id?: string; payload: ArticlePayload }) =>
-      apiFetch<Article>(data.id ? `/api/articles/${data.id}` : "/api/articles", {
-        method: data.id ? "PATCH" : "POST",
-        body: JSON.stringify(data.payload),
-      }),
+      apiFetch<Article>(
+        data.id ? `/api/articles/${data.id}` : "/api/articles",
+        {
+          method: data.id ? "PATCH" : "POST",
+          body: JSON.stringify(data.payload),
+        },
+      ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["articles"] });
     },
@@ -94,7 +97,12 @@ export function useDeleteArticle() {
 export async function uploadArticleImage(file: File) {
   const form = new FormData();
   form.append("image", file);
-  form.append("folder", "assets");
+  const clientFolder =
+    process.env.NEXT_PUBLIC_FTP_REMOTE_PATH ||
+    process.env.NEXT_PUBLIC_STORAGE_PATH;
+  if (clientFolder) {
+    form.append("folder", clientFolder);
+  }
   const response = await fetch("/api/uploads", { method: "POST", body: form });
   const payload = (await response.json()) as {
     success: boolean;

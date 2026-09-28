@@ -31,7 +31,23 @@ export async function handleAssetRequest(
   // Prevent directory traversal attacks
   const filename = path.basename(rawFilename);
 
-  const file = await storageService.downloadFile(filename);
+  // Extract subfolder from path segments or request URL pathname
+  let subfolder =
+    pathSegments && pathSegments.length > 1
+      ? pathSegments.slice(0, -1).join("/")
+      : undefined;
+
+  if (!subfolder) {
+    try {
+      const url = new URL(request.url);
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts.length > 1) {
+        subfolder = parts.slice(0, -1).join("/");
+      }
+    } catch {}
+  }
+
+  const file = await storageService.downloadFile(filename, subfolder);
   if (!file) {
     return new NextResponse("File not found", {
       status: 404,

@@ -20,6 +20,7 @@ export interface IStorageService {
   deleteFile(fileUrlOrName: string): Promise<void>;
   downloadFile(
     fileUrlOrName: string,
+    subfolder?: string,
   ): Promise<{ buffer: Buffer; contentType: string } | null>;
 }
 
@@ -137,12 +138,21 @@ async function cdFtpDir(client: ftp.Client, remotePath: string): Promise<void> {
   }
 }
 
+function getEffectiveRemotePath(folder?: string): string {
+  const configured =
+    folder ||
+    process.env.FTP_REMOTE_PATH ||
+    process.env.NEXT_PUBLIC_FTP_REMOTE_PATH ||
+    "images";
+  return configured.replace(/^\/+|\/+$/g, "");
+}
+
 export class FtpStorageService implements IStorageService {
   private host = process.env.FTP_HOST;
   private user = process.env.FTP_USER;
   private password = process.env.FTP_PASSWORD;
   private port = Number(process.env.FTP_PORT) || 21;
-  private remotePath = process.env.FTP_REMOTE_PATH || "public_html/assets";
+  private remotePath = getEffectiveRemotePath();
 
   private async connect(extraLogs: string[] = []) {
     if (!this.host || !this.user || !this.password) {
@@ -202,7 +212,7 @@ export class FtpStorageService implements IStorageService {
 
   async uploadFile(
     file: File | Buffer,
-    folder: string = "assets",
+    folder?: string,
     originalName?: string,
   ): Promise<UploadResult> {
     const logs: string[] = [];
@@ -222,27 +232,40 @@ export class FtpStorageService implements IStorageService {
         .toString(36)
         .substring(2, 9)}${ext.toLowerCase()}`;
 
-      // 1. Upload to remote FTP storage
-      await ensureFtpDir(client, this.remotePath, logs);
+      // 1. Resolve remote directory dynamically from env variables
+      const targetFolder = getEffectiveRemotePath(folder || this.remotePath);
+
+      // Upload directly to the real remote FTP location
+      await ensureFtpDir(client, targetFolder, logs);
       const stream = Readable.from(buffer);
       await client.uploadFrom(stream, uniqueName);
 
-      // 2. Cache locally on server disk for immediate, zero-latency serving by Next.js
+      // 2. Cache locally on server disk under targetFolder
       try {
-        const localDirs = [
-          path.join(process.cwd(), "public", folder),
-          path.join(process.cwd(), "public", "assets"),
-        ];
-        for (const dir of localDirs) {
-          await fs.mkdir(dir, { recursive: true });
-          await fs.writeFile(path.join(dir, uniqueName), buffer);
-        }
+        const localDir = path.join(
+          process.cwd(),
+          "public",
+          ...targetFolder.split("/"),
+        );
+        await fs.mkdir(localDir, { recursive: true });
+        await fs.writeFile(path.join(localDir, uniqueName), buffer);
       } catch (cacheErr) {
-        console.warn("[FtpStorageService] Local cache write error:", cacheErr);
+        console.warn(
+          "[FtpStorageService] Local cache write warning:",
+          cacheErr,
+        );
       }
 
+      // Generate the URL matching the real stored location from env variables
+      const baseDomain = process.env.NEXT_PUBLIC_ASSET_BASE_URL?.replace(
+        /\/$/,
+        "",
+      );
+      const relativeUrl = `/${targetFolder}/${uniqueName}`;
+      const url = baseDomain ? `${baseDomain}${relativeUrl}` : relativeUrl;
+
       return {
-        url: `/${folder}/${uniqueName}`,
+        url,
         filename: uniqueName,
         logs,
       };
@@ -270,14 +293,22 @@ export class FtpStorageService implements IStorageService {
     try {
       client = await this.connect();
       const filename = path.basename(fileUrlOrName);
-      await cdFtpDir(client, this.remotePath);
+      const targetFolder = getEffectiveRemotePath(this.remotePath);
+      await cdFtpDir(client, targetFolder);
       await client.remove(filename);
 
       // Clean local cache files if present
       try {
         const localCandidates = [
-          path.join(process.cwd(), "public", "assets", filename),
+          path.join(
+            process.cwd(),
+            "public",
+            ...targetFolder.split("/"),
+            filename,
+          ),
           path.join(process.cwd(), "public", "images", filename),
+          path.join(process.cwd(), "public", "uploads", "images", filename),
+          path.join(process.cwd(), "public", "assets", filename),
         ];
         for (const lp of localCandidates) {
           await fs.unlink(lp).catch(() => {});
@@ -293,18 +324,32 @@ export class FtpStorageService implements IStorageService {
     }
   }
 
+  /**
+   * Retrieves an image. First checks local cache (if present).
+   * If cache is missing, empty, or deleted, fetches DIRECTLY from the real FTP server.
+   * Completely independent of local caching!
+   */
   async downloadFile(
     fileUrlOrName: string,
+    subfolder?: string,
   ): Promise<{ buffer: Buffer; contentType: string } | null> {
     if (!fileUrlOrName) return null;
     const filename = path.basename(fileUrlOrName);
     const contentType = getMimeType(filename);
 
-    // 1. Check local cache first (instant hit)
+    const targetFolder = getEffectiveRemotePath(this.remotePath);
+
+    // 1. Fast local cache check (if file happens to exist)
     const localCandidates = [
-      path.join(process.cwd(), "public", "assets", filename),
+      path.join(process.cwd(), "public", ...targetFolder.split("/"), filename),
+      subfolder
+        ? path.join(process.cwd(), "public", ...subfolder.split("/"), filename)
+        : null,
       path.join(process.cwd(), "public", "images", filename),
-    ];
+      path.join(process.cwd(), "public", "uploads", "images", filename),
+      path.join(process.cwd(), "public", "assets", filename),
+    ].filter(Boolean) as string[];
+
     for (const localPath of localCandidates) {
       try {
         const buf = await fs.readFile(localPath);
@@ -312,38 +357,74 @@ export class FtpStorageService implements IStorageService {
       } catch {}
     }
 
-    // 2. Fetch from FTP storage if not cached locally
+    // 2. Fetch directly from the REAL FTP server (works even if cache is completely deleted!)
     if (!this.host || !this.user || !this.password) {
+      console.warn("[FtpStorageService] FTP credentials missing for download.");
       return null;
     }
 
     let client: ftp.Client | null = null;
     try {
       client = await this.connect();
-      await cdFtpDir(client, this.remotePath);
 
-      const chunks: Buffer[] = [];
-      const writable = new Writable({
-        write(chunk, encoding, callback) {
-          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-          callback();
-        },
-      });
+      // Directories to search on FTP server, prioritized by env variable
+      const cleanSubfolder = subfolder?.replace(/^\/+|\/+$/g, "");
+      const candidatePaths = [
+        targetFolder,
+        cleanSubfolder,
+        cleanSubfolder?.split("/").pop(), // e.g. "images" from "uploads/images"
+        "images",
+        "uploads/images",
+        "",
+      ].filter((p): p is string => typeof p === "string" && p !== undefined);
 
-      await client.downloadTo(writable, filename);
-      const buffer = Buffer.concat(chunks);
+      const uniquePaths = [...new Set(candidatePaths)];
 
-      // Save to local cache so subsequent requests are served instantly without hitting FTP again
-      try {
-        const localDir = path.join(process.cwd(), "public", "assets");
-        await fs.mkdir(localDir, { recursive: true });
-        await fs.writeFile(path.join(localDir, filename), buffer);
-      } catch {}
+      for (const remoteDir of uniquePaths) {
+        try {
+          await client.cd("/"); // Return to FTP root
+          if (remoteDir) {
+            await cdFtpDir(client, remoteDir);
+          }
 
-      return { buffer, contentType };
-    } catch (error) {
+          const chunks: Buffer[] = [];
+          const writable = new Writable({
+            write(chunk, encoding, callback) {
+              chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+              callback();
+            },
+          });
+
+          await client.downloadTo(writable, filename);
+          const buffer = Buffer.concat(chunks);
+
+          if (buffer.length > 0) {
+            // Populate cache in background, but download already succeeded
+            try {
+              const localCacheDir = path.join(
+                process.cwd(),
+                "public",
+                ...targetFolder.split("/"),
+              );
+              await fs.mkdir(localCacheDir, { recursive: true });
+              await fs.writeFile(path.join(localCacheDir, filename), buffer);
+            } catch {}
+
+            return { buffer, contentType };
+          }
+        } catch {
+          // Continue searching other candidate directories on FTP
+          continue;
+        }
+      }
+
       console.warn(
-        `[FtpStorageService] File '${filename}' not found or download failed from FTP:`,
+        `[FtpStorageService] File '${filename}' not found in any FTP directory.`,
+      );
+      return null;
+    } catch (error) {
+      console.error(
+        `[FtpStorageService] FTP download failed for '${filename}':`,
         error,
       );
       return null;

@@ -11,7 +11,12 @@ export const UploadController = {
       }
 
       const formData = await request.formData();
-      const folder = (formData.get("folder") as string) || "assets";
+      const configuredFolder = (
+        process.env.FTP_REMOTE_PATH ||
+        process.env.NEXT_PUBLIC_FTP_REMOTE_PATH ||
+        "images"
+      ).replace(/^\/+|\/+$/g, "");
+      const folder = (formData.get("folder") as string) || configuredFolder;
 
       // Accept "image" or "file" for single upload
       const singleFile =
