@@ -1,14 +1,18 @@
-import { AppError } from "@/lib/errors";
+import { AppError, ValidationError } from "@/lib/errors";
 
-export function jsonSuccess<T>(data: T, status = 200) {
-  return Response.json({ success: true, data }, { status });
+export function jsonSuccess<T>(data: T, status = 200, extra?: Record<string, unknown>) {
+  return Response.json({ success: true, ...extra, data }, { status });
 }
 
-export function jsonError(error: string, status: number) {
-  return Response.json({ success: false, error }, { status });
+export function jsonError(error: string, status: number, extra?: Record<string, unknown>) {
+  return Response.json({ success: false, error, ...extra }, { status });
 }
 
 export function handleRouteError(error: unknown) {
+  if (error instanceof ValidationError) {
+    return jsonError(error.message, error.statusCode, { details: error.details });
+  }
+
   if (error instanceof AppError) {
     return jsonError(error.message, error.statusCode);
   }

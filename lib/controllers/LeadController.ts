@@ -1,12 +1,22 @@
 import type { LeadStatus } from "@prisma/client";
 import { auth } from "@/auth";
+import { isValidAdminApiKey } from "@/lib/http/api-key";
 import { handleRouteError, jsonSuccess } from "@/lib/http/response";
 import { requireCurrentUser } from "@/lib/http/session";
 import { LeadService } from "@/lib/services/LeadService";
+import { parseLeadInquiry } from "@/lib/validation/lead-inquiry";
+
+const PUBLIC_INQUIRY_MESSAGE =
+  "Inquiry received successfully. Our team will contact you within 24 hours.";
 
 export const LeadController = {
-  async list() {
+  async list(request: Request) {
     try {
+      if (isValidAdminApiKey(request)) {
+        const leads = await LeadService.listAllInquiries();
+        return jsonSuccess(leads);
+      }
+
       const currentUser = requireCurrentUser(await auth());
       const leads = await LeadService.listLeads(currentUser);
       return jsonSuccess(leads);
@@ -24,31 +34,22 @@ export const LeadController = {
         currentUser = null;
       }
 
-      const body = (await request.json()) as {
-        name?: string;
-        email?: string;
-        phone?: string;
-        source?: string;
-        service?: string;
-        budget?: string;
-        notes?: string;
-        assignedToId?: string | null;
-      };
+      const body = (await request.json()) as unknown;
+      const parsed = parseLeadInquiry(body);
+      const lead = await LeadService.createLead(parsed, currentUser);
 
-      const lead = await LeadService.createLead(
+      if (currentUser) {
+        return jsonSuccess(lead, 201);
+      }
+
+      return jsonSuccess(
         {
-          name: body.name ?? "",
-          email: body.email ?? "",
-          phone: body.phone ?? "",
-          source: body.source,
-          service: body.service,
-          budget: body.budget,
-          notes: body.notes,
-          assignedToId: body.assignedToId,
+          leadId: lead.id,
+          createdAt: lead.createdAt,
         },
-        currentUser,
+        201,
+        { message: PUBLIC_INQUIRY_MESSAGE },
       );
-      return jsonSuccess(lead, 201);
     } catch (error) {
       return handleRouteError(error);
     }

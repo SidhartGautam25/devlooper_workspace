@@ -15,8 +15,8 @@ export function useCreateLead() {
   return useMutation({
     mutationFn: (data: {
       name: string;
-      email: string;
-      phone: string;
+      email?: string;
+      phone?: string;
       source?: string;
       service?: string;
       budget?: string;

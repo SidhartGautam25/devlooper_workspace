@@ -127,12 +127,21 @@ export type Task = {
 export type Lead = {
   id: string;
   name: string;
-  email: string;
-  phone: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  packageId: string | null;
+  packageName: string | null;
+  category: string | null;
+  priceInr: number | null;
+  projectDetails: string | null;
+  sourceUrl: string | null;
+  sourceComponent: string | null;
   source: string | null;
   service: string | null;
   status: LeadStatus;
   notes: string | null;
+  internalNotes: string | null;
   budget: string | null;
   assignedToId: string | null;
   createdAt: string;

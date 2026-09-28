@@ -83,13 +83,20 @@ export function LeadsView() {
               <tr key={lead.id} className="border-b border-slate-800/80">
                 <td className="px-4 py-3">
                   <p className="font-medium text-white">{lead.name}</p>
-                  <p className="text-xs text-slate-400">{lead.source ?? "—"}</p>
+                  <p className="text-xs text-slate-400">
+                    {lead.company ?? lead.sourceComponent ?? lead.source ?? "—"}
+                  </p>
                 </td>
                 <td className="px-4 py-3 text-slate-300">
-                  <p>{lead.email}</p>
-                  <p className="text-xs text-slate-400">{lead.phone}</p>
+                  <p>{lead.email ?? "—"}</p>
+                  <p className="text-xs text-slate-400">{lead.phone ?? "—"}</p>
                 </td>
-                <td className="px-4 py-3 text-slate-300">{lead.service ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-300">
+                  <p>{lead.packageName ?? lead.service ?? "—"}</p>
+                  {lead.priceInr != null ? (
+                    <p className="text-xs text-slate-400">₹{lead.priceInr}</p>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3">
                   <Badge value={lead.status} />
                 </td>
@@ -172,11 +179,11 @@ export function LeadsView() {
             </label>
             <label className="block text-sm text-slate-300">
               Email
-              <input name="email" type="email" required className={inputClass} />
+              <input name="email" type="email" className={inputClass} />
             </label>
             <label className="block text-sm text-slate-300">
               Phone
-              <input name="phone" required className={inputClass} />
+              <input name="phone" className={inputClass} />
             </label>
             <label className="block text-sm text-slate-300">
               Service
@@ -238,8 +245,20 @@ export function LeadsView() {
             }}
           >
             <p className="text-sm text-slate-400">
-              {editing.email} · {editing.phone}
+              {[editing.email, editing.phone, editing.company].filter(Boolean).join(" · ") || "No contact details"}
             </p>
+            {editing.packageName ? (
+              <p className="text-sm text-slate-300">
+                {editing.packageName}
+                {editing.category ? ` · ${editing.category}` : ""}
+                {editing.priceInr != null ? ` · ₹${editing.priceInr}` : ""}
+              </p>
+            ) : null}
+            {editing.projectDetails ? (
+              <p className="rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-sm text-slate-300">
+                {editing.projectDetails}
+              </p>
+            ) : null}
             <label className="block text-sm text-slate-300">
               Status
               <select name="status" defaultValue={editing.status} className={inputClass}>

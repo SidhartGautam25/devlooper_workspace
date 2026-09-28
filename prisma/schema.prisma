@@ -195,20 +195,37 @@ model Task {
 }
 
 model Lead {
-  id           String     @id @default(uuid())
-  name         String
-  email        String
-  phone        String
-  source       String?
-  service      String?
-  status       LeadStatus @default(NEW)
-  notes        String?    @db.Text
-  budget       String?
+  id     String  @id @default(cuid())
+  name   String
+  email  String?
+  phone  String?
+  company String?
+
+  packageId   String?
+  packageName String?
+  category    String?
+  priceInr    Int?
+
+  projectDetails  String? @db.Text
+  sourceUrl       String?
+  sourceComponent String?
+
+  source  String?
+  service String?
+  budget  String?
+
+  status        LeadStatus @default(NEW)
+  notes         String?    @db.Text
+  internalNotes String?    @db.Text
+
   assignedToId String?
-  assignedTo   User?      @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  assignedTo   User?   @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([assignedToId])
   @@index([status])
+  @@index([createdAt])
+  @@index([packageId])
 }
