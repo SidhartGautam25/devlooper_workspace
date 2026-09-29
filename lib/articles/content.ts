@@ -50,7 +50,13 @@ export const CODE_LANGUAGES = [
 ] as const;
 
 export const DEFAULT_NEW_ARTICLE_BLOCKS: ArticleBlock[] = [
-  { id: "intro", type: "heading", level: 2, text: "Introduction", tocLabel: "" },
+  {
+    id: "intro",
+    type: "heading",
+    level: 2,
+    text: "Introduction",
+    tocLabel: "",
+  },
   { id: "body", type: "paragraph", html: "" },
 ];
 
@@ -70,12 +76,31 @@ export function slugify(value: string) {
 }
 
 export function sanitizeParagraphHtml(html: string) {
-  return html
+  if (!html) return "";
+  let clean = html
     .replace(/<\/?(script|style|iframe|object|embed)[^>]*>/gi, "")
     .replace(/on\w+="[^"]*"/gi, "")
     .replace(/on\w+='[^']*'/gi, "")
-    .replace(/javascript:/gi, "")
-    .replace(/<(?!\/?(mark|u|strong|em|b|i|br|span)\b)[^>]*>/gi, "");
+    .replace(/javascript:/gi, "");
+
+  // Normalize paragraph and div breaks into <br> tags so newlines and gaps are never lost
+  clean = clean
+    .replace(/<p><br\/?><\/p>/gi, "<br>")
+    .replace(/<div><br\/?><\/div>/gi, "<br>")
+    .replace(/<\/p>\s*<p>/gi, "<br><br>")
+    .replace(/<\/div>\s*<div>/gi, "<br>")
+    .replace(/<br\s*\/?>\s*<\/div>/gi, "<br>")
+    .replace(/<div>/gi, "<br>")
+    .replace(/<p>/gi, "<br>")
+    .replace(/<\/p>|<\/div>/gi, "");
+
+  // Allow only safe formatting tags: mark, u, strong, em, b, i, br, span
+  clean = clean.replace(/<(?!\/?(mark|u|strong|em|b|i|br|span)\b)[^>]*>/gi, "");
+
+  // Clean initial leading <br> if the content was wrapped in an outer div
+  clean = clean.replace(/^<br\s*\/?>+/i, "");
+
+  return clean;
 }
 
 export function isArticleBlock(value: unknown): value is ArticleBlock {
@@ -127,8 +152,10 @@ export function normalizeContent(content: unknown): ArticleBlock[] {
   });
 }
 
-export function headingTocTitle(block: Extract<ArticleBlock, { type: "heading" }>) {
-  return (block.tocLabel?.trim() || block.text.trim());
+export function headingTocTitle(
+  block: Extract<ArticleBlock, { type: "heading" }>,
+) {
+  return block.tocLabel?.trim() || block.text.trim();
 }
 
 export function buildToc(blocks: ArticleBlock[]): ArticleTocItem[] {
@@ -144,9 +171,15 @@ export function buildToc(blocks: ArticleBlock[]): ArticleTocItem[] {
     }));
 }
 
-export function collectImageUrls(blocks: ArticleBlock[], heroImageUrl?: string | null) {
+export function collectImageUrls(
+  blocks: ArticleBlock[],
+  heroImageUrl?: string | null,
+) {
   const urls = blocks
-    .filter((block): block is Extract<ArticleBlock, { type: "image" }> => block.type === "image")
+    .filter(
+      (block): block is Extract<ArticleBlock, { type: "image" }> =>
+        block.type === "image",
+    )
     .map((block) => block.url);
   if (heroImageUrl) urls.push(heroImageUrl);
   return [...new Set(urls.filter(Boolean))];

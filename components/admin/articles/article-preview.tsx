@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { buildToc, type ArticleBlock, type ArticleTocItem } from "@/lib/articles/content";
+import {
+  buildToc,
+  type ArticleBlock,
+  type ArticleTocItem,
+} from "@/lib/articles/content";
 import { publicAssetUrl } from "@/lib/articles/asset-url";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +63,9 @@ export function ArticlePreview({
         </p>
         <nav className="space-y-1">
           {toc.length === 0 ? (
-            <p className="text-xs text-slate-500">Add headings to build the topic list.</p>
+            <p className="text-xs text-slate-500">
+              Add headings to build the topic list.
+            </p>
           ) : (
             toc.map((item) => (
               <a
@@ -94,12 +100,18 @@ export function ArticlePreview({
           </div>
         )}
         <div className="space-y-4 p-6">
-          <h1 className="text-3xl font-semibold text-white">{title || "Untitled article"}</h1>
+          <h1 className="text-3xl font-semibold text-white">
+            {title || "Untitled article"}
+          </h1>
           <p className="text-xs text-slate-400">
             {authors.join(", ") || "Author"}
             {language ? ` · ${language}` : ""}
-            {publishedAt ? ` · Written ${new Date(publishedAt).toLocaleDateString()}` : ""}
-            {updatedAt ? ` · Updated ${new Date(updatedAt).toLocaleDateString()}` : ""}
+            {publishedAt
+              ? ` · Written ${new Date(publishedAt).toLocaleDateString()}`
+              : ""}
+            {updatedAt
+              ? ` · Updated ${new Date(updatedAt).toLocaleDateString()}`
+              : ""}
           </p>
           {techStacks.length > 0 ? (
             <div className="flex flex-wrap gap-2">
@@ -126,27 +138,43 @@ export function ArticlePreview({
               }`;
               if (block.level === 1) {
                 return (
-                  <h1 key={block.id} id={`preview-${block.id}`} className={className}>
+                  <h1
+                    key={block.id}
+                    id={`preview-${block.id}`}
+                    className={className}
+                  >
                     {block.text}
                   </h1>
                 );
               }
               if (block.level === 2) {
                 return (
-                  <h2 key={block.id} id={`preview-${block.id}`} className={className}>
+                  <h2
+                    key={block.id}
+                    id={`preview-${block.id}`}
+                    className={className}
+                  >
                     {block.text}
                   </h2>
                 );
               }
               if (block.level === 3) {
                 return (
-                  <h3 key={block.id} id={`preview-${block.id}`} className={className}>
+                  <h3
+                    key={block.id}
+                    id={`preview-${block.id}`}
+                    className={className}
+                  >
                     {block.text}
                   </h3>
                 );
               }
               return (
-                <h4 key={block.id} id={`preview-${block.id}`} className={className}>
+                <h4
+                  key={block.id}
+                  id={`preview-${block.id}`}
+                  className={className}
+                >
                   {block.text}
                 </h4>
               );
@@ -155,7 +183,7 @@ export function ArticlePreview({
               return (
                 <div
                   key={block.id}
-                  className="leading-7 text-slate-200 [&_u]:underline"
+                  className="leading-7 text-slate-200 [&_u]:underline whitespace-pre-wrap break-words"
                   dangerouslySetInnerHTML={{ __html: block.html || "" }}
                 />
               );
@@ -194,7 +222,9 @@ export function ArticlePreview({
 
           {related.length > 0 ? (
             <div className="border-t border-slate-800 pt-4">
-              <p className="mb-2 text-sm font-semibold text-white">Related articles</p>
+              <p className="mb-2 text-sm font-semibold text-white">
+                Related articles
+              </p>
               <ul className="space-y-1 text-sm text-indigo-300">
                 {related.map((item) => (
                   <li key={item.id}>{item.title}</li>
