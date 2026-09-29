@@ -158,6 +158,8 @@ export type Lead = {
 export type ArticleStatus = "DRAFT" | "PUBLISHED";
 export type HeadingLevel = 1 | 2 | 3 | 4;
 
+export type ImageSize = "default" | "original" | "small" | "medium";
+
 export type ArticleBlock =
   | {
       id: string;
@@ -168,7 +170,14 @@ export type ArticleBlock =
     }
   | { id: string; type: "paragraph"; html: string }
   | { id: string; type: "code"; language: string; code: string }
-  | { id: string; type: "image"; url: string; alt: string; caption?: string };
+  | {
+      id: string;
+      type: "image";
+      url: string;
+      alt: string;
+      caption?: string;
+      size?: ImageSize;
+    };
 
 export type ArticleTocItem = {
   id: string;

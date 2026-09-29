@@ -1,4 +1,5 @@
 export type HeadingLevel = 1 | 2 | 3 | 4;
+export type ImageSize = "default" | "original" | "small" | "medium";
 
 export type ArticleBlock =
   | {
@@ -25,6 +26,7 @@ export type ArticleBlock =
       url: string;
       alt: string;
       caption?: string;
+      size?: ImageSize;
     };
 
 export type ArticleTocItem = {
@@ -147,6 +149,16 @@ export function normalizeContent(content: unknown): ArticleBlock[] {
       const tocLabel =
         typeof block.tocLabel === "string" ? block.tocLabel.trim() : "";
       return { ...block, text: block.text.trim(), tocLabel };
+    }
+    if (block.type === "image") {
+      const size: ImageSize =
+        block.size === "original" ||
+        block.size === "small" ||
+        block.size === "medium" ||
+        block.size === "default"
+          ? block.size
+          : "default";
+      return { ...block, size };
     }
     return block;
   });

@@ -11,7 +11,9 @@ import {
   DEFAULT_NEW_ARTICLE_BLOCKS,
   type ArticleBlock,
   type HeadingLevel,
+  type ImageSize,
 } from "@/lib/articles/content";
+import { publicAssetUrl } from "@/lib/articles/asset-url";
 import {
   uploadArticleImage,
   useArticle,
@@ -59,13 +61,21 @@ function ArticleEditorForm({
   const [slug, setSlug] = useState(existing?.slug ?? "");
   const [excerpt, setExcerpt] = useState(existing?.excerpt ?? "");
   const [language, setLanguage] = useState(existing?.language ?? "");
-  const [heroImageUrl, setHeroImageUrl] = useState(existing?.heroImageUrl ?? "");
-  const [status, setStatus] = useState<ArticleStatus>(existing?.status ?? "DRAFT");
+  const [heroImageUrl, setHeroImageUrl] = useState(
+    existing?.heroImageUrl ?? "",
+  );
+  const [status, setStatus] = useState<ArticleStatus>(
+    existing?.status ?? "DRAFT",
+  );
   const [authorName, setAuthorName] = useState(
     existing?.authorName ?? existing?.authors?.[0]?.name ?? user.name ?? "",
   );
-  const [techStackIds, setTechStackIds] = useState<string[]>(existing?.techStackIds ?? []);
-  const [relatedIds, setRelatedIds] = useState<string[]>(existing?.relatedIds ?? []);
+  const [techStackIds, setTechStackIds] = useState<string[]>(
+    existing?.techStackIds ?? [],
+  );
+  const [relatedIds, setRelatedIds] = useState<string[]>(
+    existing?.relatedIds ?? [],
+  );
   const [blocks, setBlocks] = useState<ArticleBlock[]>(
     existing?.content.blocks.length
       ? existing.content.blocks
@@ -81,7 +91,9 @@ function ArticleEditorForm({
 
   function updateBlock(id: string, patch: Partial<ArticleBlock>) {
     setBlocks((current) =>
-      current.map((block) => (block.id === id ? ({ ...block, ...patch } as ArticleBlock) : block)),
+      current.map((block) =>
+        block.id === id ? ({ ...block, ...patch } as ArticleBlock) : block,
+      ),
     );
   }
 
@@ -129,7 +141,8 @@ function ArticleEditorForm({
             {articleId ? "Edit article" : "New article"}
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Write in blocks. Images upload to FTP; everything else is stored in the database.
+            Write in blocks. Images upload to FTP; everything else is stored in
+            the database.
           </p>
         </div>
         <div className="flex gap-2">
@@ -157,7 +170,11 @@ function ArticleEditorForm({
         <div className="space-y-4">
           <label className="block text-sm text-slate-300">
             Title
-            <input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} />
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className={inputClass}
+            />
           </label>
           <label className="block text-sm text-slate-300">
             Slug
@@ -198,7 +215,9 @@ function ArticleEditorForm({
                 try {
                   setHeroImageUrl(await uploadArticleImage(file));
                 } catch (err) {
-                  setError(err instanceof Error ? err.message : "Hero upload failed");
+                  setError(
+                    err instanceof Error ? err.message : "Hero upload failed",
+                  );
                 }
               }}
               className="text-sm text-slate-300"
@@ -221,7 +240,10 @@ function ArticleEditorForm({
           <fieldset className="space-y-2">
             <legend className="text-sm text-slate-300">Tech stacks</legend>
             {techStacks.map((stack) => (
-              <label key={stack.id} className="flex items-center gap-2 text-sm text-slate-300">
+              <label
+                key={stack.id}
+                className="flex items-center gap-2 text-sm text-slate-300"
+              >
                 <input
                   type="checkbox"
                   checked={techStackIds.includes(stack.id)}
@@ -247,7 +269,9 @@ function ArticleEditorForm({
                 type="button"
                 onClick={async () => {
                   if (!newStack.trim()) return;
-                  const created = await createStack.mutateAsync(newStack.trim());
+                  const created = await createStack.mutateAsync(
+                    newStack.trim(),
+                  );
                   setTechStackIds((current) => [...current, created.id]);
                   setNewStack("");
                 }}
@@ -261,10 +285,15 @@ function ArticleEditorForm({
           <fieldset className="space-y-2">
             <legend className="text-sm text-slate-300">Related articles</legend>
             {relatedOptions.length === 0 ? (
-              <p className="text-xs text-slate-500">Save more articles to link them here.</p>
+              <p className="text-xs text-slate-500">
+                Save more articles to link them here.
+              </p>
             ) : (
               relatedOptions.map((article) => (
-                <label key={article.id} className="flex items-center gap-2 text-sm text-slate-300">
+                <label
+                  key={article.id}
+                  className="flex items-center gap-2 text-sm text-slate-300"
+                >
                   <input
                     type="checkbox"
                     checked={relatedIds.includes(article.id)}
@@ -290,7 +319,13 @@ function ArticleEditorForm({
               onClick={() =>
                 setBlocks((current) => [
                   ...current,
-                  { id: createBlockId(), type: "heading", level: 2, text: "", tocLabel: "" },
+                  {
+                    id: createBlockId(),
+                    type: "heading",
+                    level: 2,
+                    text: "",
+                    tocLabel: "",
+                  },
                 ])
               }
             />
@@ -308,7 +343,12 @@ function ArticleEditorForm({
               onClick={() =>
                 setBlocks((current) => [
                   ...current,
-                  { id: createBlockId(), type: "code", language: "typescript", code: "" },
+                  {
+                    id: createBlockId(),
+                    type: "code",
+                    language: "typescript",
+                    code: "",
+                  },
                 ])
               }
             />
@@ -317,27 +357,51 @@ function ArticleEditorForm({
               onClick={() =>
                 setBlocks((current) => [
                   ...current,
-                  { id: createBlockId(), type: "image", url: "", alt: "" },
+                  {
+                    id: createBlockId(),
+                    type: "image",
+                    url: "",
+                    alt: "",
+                    caption: "",
+                    size: "default",
+                  },
                 ])
               }
             />
           </div>
 
           {blocks.map((block, index) => (
-            <div key={block.id} className="rounded-xl border border-slate-800 bg-[#1E293B] p-3">
+            <div
+              key={block.id}
+              className="rounded-xl border border-slate-800 bg-[#1E293B] p-3"
+            >
               <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-xs uppercase tracking-wider text-slate-500">{block.type}</p>
+                <p className="text-xs uppercase tracking-wider text-slate-500">
+                  {block.type}
+                </p>
                 <div className="flex gap-1">
-                  <button type="button" className="text-xs text-slate-400" onClick={() => moveBlock(index, -1)}>
+                  <button
+                    type="button"
+                    className="text-xs text-slate-400"
+                    onClick={() => moveBlock(index, -1)}
+                  >
                     Up
                   </button>
-                  <button type="button" className="text-xs text-slate-400" onClick={() => moveBlock(index, 1)}>
+                  <button
+                    type="button"
+                    className="text-xs text-slate-400"
+                    onClick={() => moveBlock(index, 1)}
+                  >
                     Down
                   </button>
                   <button
                     type="button"
                     className="text-xs text-rose-300"
-                    onClick={() => setBlocks((current) => current.filter((item) => item.id !== block.id))}
+                    onClick={() =>
+                      setBlocks((current) =>
+                        current.filter((item) => item.id !== block.id),
+                      )
+                    }
                   >
                     Remove
                   </button>
@@ -350,7 +414,9 @@ function ArticleEditorForm({
                     <select
                       value={block.level}
                       onChange={(event) =>
-                        updateBlock(block.id, { level: Number(event.target.value) as HeadingLevel })
+                        updateBlock(block.id, {
+                          level: Number(event.target.value) as HeadingLevel,
+                        })
                       }
                       className="rounded-lg border border-slate-700 bg-slate-800 px-2 text-sm"
                     >
@@ -361,14 +427,18 @@ function ArticleEditorForm({
                     </select>
                     <input
                       value={block.text}
-                      onChange={(event) => updateBlock(block.id, { text: event.target.value })}
+                      onChange={(event) =>
+                        updateBlock(block.id, { text: event.target.value })
+                      }
                       placeholder="Heading in the article"
                       className={inputClass + " mt-0"}
                     />
                   </div>
                   <input
                     value={block.tocLabel ?? ""}
-                    onChange={(event) => updateBlock(block.id, { tocLabel: event.target.value })}
+                    onChange={(event) =>
+                      updateBlock(block.id, { tocLabel: event.target.value })
+                    }
                     placeholder="Sidebar label (optional — defaults to heading)"
                     className={inputClass}
                   />
@@ -386,7 +456,9 @@ function ArticleEditorForm({
                 <div className="space-y-2">
                   <select
                     value={block.language}
-                    onChange={(event) => updateBlock(block.id, { language: event.target.value })}
+                    onChange={(event) =>
+                      updateBlock(block.id, { language: event.target.value })
+                    }
                     className="rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-sm"
                   >
                     {CODE_LANGUAGES.map((lang) => (
@@ -397,7 +469,9 @@ function ArticleEditorForm({
                   </select>
                   <textarea
                     value={block.code}
-                    onChange={(event) => updateBlock(block.id, { code: event.target.value })}
+                    onChange={(event) =>
+                      updateBlock(block.id, { code: event.target.value })
+                    }
                     rows={8}
                     className="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-emerald-200"
                     placeholder="// code"
@@ -406,34 +480,104 @@ function ArticleEditorForm({
               ) : null}
 
               {block.type === "image" ? (
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (!file) return;
-                      try {
-                        const url = await uploadArticleImage(file);
-                        updateBlock(block.id, { url });
-                      } catch (err) {
-                        setError(
-                          err instanceof Error ? err.message : "Image upload failed",
-                        );
-                      }
-                    }}
-                    className="text-sm text-slate-300"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-300">
+                      Upload Image
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await uploadArticleImage(file);
+                          updateBlock(block.id, { url });
+                        } catch (err) {
+                          setError(
+                            err instanceof Error
+                              ? err.message
+                              : "Image upload failed",
+                          );
+                        }
+                      }}
+                      className="text-sm text-slate-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                      Display Size (Always Centered)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {(
+                        [
+                          { value: "default", label: "Default" },
+                          { value: "medium", label: "Medium" },
+                          { value: "small", label: "Small" },
+                          { value: "original", label: "Original size" },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() =>
+                            updateBlock(block.id, {
+                              size: opt.value as ImageSize,
+                            })
+                          }
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                            (block.size || "default") === opt.value
+                              ? "border-indigo-500 bg-indigo-600/20 text-indigo-200"
+                              : "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {block.url ? (
+                    <div className="my-2 flex flex-col items-center justify-center rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={publicAssetUrl(block.url)}
+                        alt={block.alt || "Uploaded image"}
+                        className={`mx-auto rounded-lg object-contain shadow ${
+                          block.size === "small"
+                            ? "max-h-36 max-w-xs"
+                            : block.size === "medium"
+                              ? "max-h-56 max-w-sm"
+                              : block.size === "original"
+                                ? "max-h-72 max-w-full"
+                                : "max-h-64 w-full object-cover"
+                        }`}
+                      />
+                      <span className="mt-1 text-[11px] text-slate-400">
+                        Selected size:{" "}
+                        <strong className="capitalize">
+                          {block.size || "default"}
+                        </strong>
+                      </span>
+                    </div>
+                  ) : null}
+
                   <input
                     value={block.alt}
-                    onChange={(event) => updateBlock(block.id, { alt: event.target.value })}
+                    onChange={(event) =>
+                      updateBlock(block.id, { alt: event.target.value })
+                    }
                     placeholder="Alt text"
                     className={inputClass}
                   />
                   <input
                     value={block.caption ?? ""}
-                    onChange={(event) => updateBlock(block.id, { caption: event.target.value })}
-                    placeholder="Caption"
+                    onChange={(event) =>
+                      updateBlock(block.id, { caption: event.target.value })
+                    }
+                    placeholder="Caption (optional)"
                     className={inputClass}
                   />
                 </div>
@@ -450,7 +594,9 @@ function ArticleEditorForm({
           heroImageUrl={heroImageUrl}
           authors={authorName.trim() ? [authorName.trim()] : []}
           language={language}
-          techStacks={techStacks.filter((stack) => techStackIds.includes(stack.id)).map((stack) => stack.name)}
+          techStacks={techStacks
+            .filter((stack) => techStackIds.includes(stack.id))
+            .map((stack) => stack.name)}
           publishedAt={existing?.publishedAt}
           updatedAt={existing?.updatedAt}
           blocks={blocks}
@@ -463,7 +609,13 @@ function ArticleEditorForm({
   );
 }
 
-function AddBlockButton({ label, onClick }: { label: string; onClick: () => void }) {
+function AddBlockButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"

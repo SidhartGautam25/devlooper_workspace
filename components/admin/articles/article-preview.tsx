@@ -7,6 +7,7 @@ import {
   type ArticleTocItem,
 } from "@/lib/articles/content";
 import { publicAssetUrl } from "@/lib/articles/asset-url";
+import { CodeBlock } from "@/components/admin/articles/code-block";
 import { cn } from "@/lib/utils";
 
 export function ArticlePreview({
@@ -190,25 +191,34 @@ export function ArticlePreview({
             }
             if (block.type === "code") {
               return (
-                <pre
+                <CodeBlock
                   key={block.id}
-                  className="overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs text-emerald-200"
-                >
-                  <div className="mb-2 text-[10px] uppercase tracking-wider text-slate-500">
-                    {block.language}
-                  </div>
-                  <code>{block.code}</code>
-                </pre>
+                  code={block.code}
+                  language={block.language}
+                />
               );
             }
+            const size = block.size || "default";
+            const imgSizeClasses =
+              size === "small"
+                ? "w-auto max-w-sm max-h-56 object-contain"
+                : size === "medium"
+                  ? "w-auto max-w-xl max-h-96 object-contain"
+                  : size === "original"
+                    ? "w-auto max-w-full max-h-[700px] object-contain"
+                    : "w-full max-w-full object-cover"; // default
+
             return (
-              <figure key={block.id} className="space-y-2">
+              <figure
+                key={block.id}
+                className="my-6 flex flex-col items-center justify-center space-y-2 text-center"
+              >
                 {block.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={publicAssetUrl(block.url)}
                     alt={block.alt}
-                    className="w-full rounded-xl object-cover"
+                    className={`mx-auto rounded-xl shadow-md ${imgSizeClasses}`}
                   />
                 ) : null}
                 {block.caption ? (
