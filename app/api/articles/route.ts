@@ -1,7 +1,7 @@
 import { ArticleController } from "@/lib/controllers/ArticleController";
 
-export function GET() {
-  return ArticleController.list();
+export function GET(request: Request) {
+  return ArticleController.list(request);
 }
 
 export function POST(request: Request) {

@@ -36,10 +36,12 @@ export type ArticleRecord = Prisma.ArticleGetPayload<{
 }>;
 
 export const ArticleRepository = {
-  listAll() {
+  listAll(options?: { trash?: boolean }) {
+    const isTrash = options?.trash === true;
     return prisma.article.findMany({
+      where: isTrash ? { deletedAt: { not: null } } : { deletedAt: null },
       include: articleInclude,
-      orderBy: [{ updatedAt: "desc" }],
+      orderBy: isTrash ? [{ deletedAt: "desc" }] : [{ updatedAt: "desc" }],
     });
   },
 
@@ -56,6 +58,7 @@ export const ArticleRepository = {
     return prisma.article.findMany({
       where: {
         status: "PUBLISHED",
+        deletedAt: null,
         ...(language ? { language } : {}),
         ...(query
           ? {
@@ -184,7 +187,25 @@ export const ArticleRepository = {
     });
   },
 
-  delete(id: string) {
+  softDelete(id: string) {
+    return prisma.article.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  },
+
+  restore(id: string) {
+    return prisma.article.update({
+      where: { id },
+      data: { deletedAt: null },
+    });
+  },
+
+  hardDelete(id: string) {
     return prisma.article.delete({ where: { id } });
+  },
+
+  delete(id: string) {
+    return this.hardDelete(id);
   },
 };

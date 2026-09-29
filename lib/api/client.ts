@@ -159,7 +159,13 @@ export type ArticleStatus = "DRAFT" | "PUBLISHED";
 export type HeadingLevel = 1 | 2 | 3 | 4;
 
 export type ArticleBlock =
-  | { id: string; type: "heading"; level: HeadingLevel; text: string; tocLabel?: string }
+  | {
+      id: string;
+      type: "heading";
+      level: HeadingLevel;
+      text: string;
+      tocLabel?: string;
+    }
   | { id: string; type: "paragraph"; html: string }
   | { id: string; type: "code"; language: string; code: string }
   | { id: string; type: "image"; url: string; alt: string; caption?: string };
@@ -194,6 +200,7 @@ export type ArticleSummary = {
   authorName?: string | null;
   status: ArticleStatus;
   publishedAt: string | null;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   authors: ArticleAuthor[];

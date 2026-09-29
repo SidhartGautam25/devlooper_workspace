@@ -2,14 +2,18 @@ import { ArticleStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { handleRouteError, jsonSuccess } from "@/lib/http/response";
 import { requireCurrentUser } from "@/lib/http/session";
-import { ArticleService, type ArticleInput } from "@/lib/services/ArticleService";
+import {
+  ArticleService,
+  type ArticleInput,
+} from "@/lib/services/ArticleService";
 
 function bodyToInput(body: Record<string, unknown>): ArticleInput {
   return {
     title: String(body.title ?? ""),
     slug: typeof body.slug === "string" ? body.slug : undefined,
     excerpt: typeof body.excerpt === "string" ? body.excerpt : null,
-    heroImageUrl: typeof body.heroImageUrl === "string" ? body.heroImageUrl : null,
+    heroImageUrl:
+      typeof body.heroImageUrl === "string" ? body.heroImageUrl : null,
     language: typeof body.language === "string" ? body.language : null,
     content: body.content,
     status:
@@ -27,10 +31,14 @@ function bodyToInput(body: Record<string, unknown>): ArticleInput {
 }
 
 export const ArticleController = {
-  async list() {
+  async list(request?: Request) {
     try {
       const currentUser = requireCurrentUser(await auth());
-      const articles = await ArticleService.list(currentUser);
+      const url = request ? new URL(request.url) : null;
+      const isTrash = url?.searchParams.get("trash") === "true";
+      const articles = await ArticleService.list(currentUser, {
+        trash: isTrash,
+      });
       return jsonSuccess(articles);
     } catch (error) {
       return handleRouteError(error);
@@ -61,7 +69,10 @@ export const ArticleController = {
     try {
       const currentUser = requireCurrentUser(await auth());
       const body = (await request.json()) as Record<string, unknown>;
-      const article = await ArticleService.create(currentUser, bodyToInput(body));
+      const article = await ArticleService.create(
+        currentUser,
+        bodyToInput(body),
+      );
       return jsonSuccess(article, 201);
     } catch (error) {
       return handleRouteError(error);
@@ -83,10 +94,23 @@ export const ArticleController = {
     }
   },
 
-  async remove(id: string) {
+  async remove(request: Request, id: string) {
     try {
       const currentUser = requireCurrentUser(await auth());
-      const result = await ArticleService.delete(currentUser, id);
+      const url = new URL(request.url);
+      const typeParam = url.searchParams.get("type");
+      const type = typeParam === "hard" ? "hard" : "soft";
+      const result = await ArticleService.delete(currentUser, id, { type });
+      return jsonSuccess(result);
+    } catch (error) {
+      return handleRouteError(error);
+    }
+  },
+
+  async restore(id: string) {
+    try {
+      const currentUser = requireCurrentUser(await auth());
+      const result = await ArticleService.restore(currentUser, id);
       return jsonSuccess(result);
     } catch (error) {
       return handleRouteError(error);

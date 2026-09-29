@@ -23,10 +23,14 @@ export type ArticlePayload = {
   relatedIds: string[];
 };
 
-export function useArticles() {
+export function useArticles(options?: { trash?: boolean }) {
+  const isTrash = Boolean(options?.trash);
   return useQuery({
-    queryKey: ["articles"],
-    queryFn: () => apiFetch<Article[]>("/api/articles"),
+    queryKey: ["articles", { trash: isTrash }],
+    queryFn: () =>
+      apiFetch<Article[]>(
+        isTrash ? "/api/articles?trash=true" : "/api/articles",
+      ),
   });
 }
 
@@ -83,16 +87,40 @@ export function useSaveArticle() {
   });
 }
 
-export function useDeleteArticle() {
+export function useSoftDeleteArticle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/articles/${id}`, { method: "DELETE" }),
+      apiFetch(`/api/articles/${id}?type=soft`, { method: "DELETE" }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["articles"] });
     },
   });
 }
+
+export function useHardDeleteArticle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/articles/${id}?type=hard`, { method: "DELETE" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["articles"] });
+    },
+  });
+}
+
+export function useRestoreArticle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/articles/${id}/restore`, { method: "POST" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["articles"] });
+    },
+  });
+}
+
+export const useDeleteArticle = useSoftDeleteArticle;
 
 export async function uploadArticleImage(file: File) {
   const form = new FormData();

@@ -1,9 +1,5 @@
 import { ArticleStatus, Role } from "@prisma/client";
-import {
-  BadRequestError,
-  ForbiddenError,
-  NotFoundError,
-} from "@/lib/errors";
+import { BadRequestError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import {
   buildToc,
   collectImageUrls,
@@ -60,6 +56,7 @@ function toPublicArticle(article: ArticleRecord) {
     authorName: authors[0]?.name ?? null,
     status: article.status,
     publishedAt: article.publishedAt,
+    deletedAt: article.deletedAt ? article.deletedAt.toISOString() : null,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
     authors,
@@ -120,7 +117,11 @@ function toAdminArticle(article: ArticleRecord) {
   };
 }
 
-async function uniqueSlug(title: string, preferred?: string, excludeId?: string) {
+async function uniqueSlug(
+  title: string,
+  preferred?: string,
+  excludeId?: string,
+) {
   const base = slugify(preferred || title);
   let slug = base;
   let suffix = 2;
@@ -132,7 +133,11 @@ async function uniqueSlug(title: string, preferred?: string, excludeId?: string)
   }
 }
 
-async function resolveInput(data: ArticleInput, currentUser: CurrentUser, existing?: ArticleRecord) {
+async function resolveInput(
+  data: ArticleInput,
+  currentUser: CurrentUser,
+  existing?: ArticleRecord,
+) {
   const title = data.title?.trim();
   if (!title) {
     throw new BadRequestError("Title is required");
@@ -168,8 +173,8 @@ async function resolveInput(data: ArticleInput, currentUser: CurrentUser, existi
 
   const publishedAt =
     status === ArticleStatus.PUBLISHED
-      ? existing?.publishedAt ?? new Date()
-      : existing?.publishedAt ?? null;
+      ? (existing?.publishedAt ?? new Date())
+      : (existing?.publishedAt ?? null);
 
   return {
     title,
@@ -187,9 +192,9 @@ async function resolveInput(data: ArticleInput, currentUser: CurrentUser, existi
 }
 
 export const ArticleService = {
-  async list(currentUser: CurrentUser) {
+  async list(currentUser: CurrentUser, options?: { trash?: boolean }) {
     assertSuperuser(currentUser);
-    const articles = await ArticleRepository.listAll();
+    const articles = await ArticleRepository.listAll(options);
     return articles.map(toAdminArticle);
   },
 
@@ -217,7 +222,11 @@ export const ArticleService = {
 
   async getPublishedBySlug(slug: string) {
     const article = await ArticleRepository.findBySlug(slug);
-    if (!article || article.status !== ArticleStatus.PUBLISHED) {
+    if (
+      !article ||
+      article.status !== ArticleStatus.PUBLISHED ||
+      article.deletedAt
+    ) {
       throw new NotFoundError("Article not found");
     }
     return toPublicArticle(article);
@@ -225,7 +234,11 @@ export const ArticleService = {
 
   async getPublishedById(id: string) {
     const article = await ArticleRepository.findById(id);
-    if (!article || article.status !== ArticleStatus.PUBLISHED) {
+    if (
+      !article ||
+      article.status !== ArticleStatus.PUBLISHED ||
+      article.deletedAt
+    ) {
       throw new NotFoundError("Article not found");
     }
     return toPublicArticle(article);
@@ -247,15 +260,55 @@ export const ArticleService = {
     return toAdminArticle(article);
   },
 
-  async delete(currentUser: CurrentUser, id: string) {
+  async softDelete(currentUser: CurrentUser, id: string) {
+    assertSuperuser(currentUser);
+    const existing = await ArticleRepository.findById(id);
+    if (!existing) throw new NotFoundError("Article not found");
+    await ArticleRepository.softDelete(id);
+    return { id, softDeleted: true, message: "Article moved to trash" };
+  },
+
+  async restore(currentUser: CurrentUser, id: string) {
+    assertSuperuser(currentUser);
+    const existing = await ArticleRepository.findById(id);
+    if (!existing) throw new NotFoundError("Article not found");
+    await ArticleRepository.restore(id);
+    return { id, restored: true, message: "Article restored from trash" };
+  },
+
+  async hardDelete(currentUser: CurrentUser, id: string) {
     assertSuperuser(currentUser);
     const existing = await ArticleRepository.findById(id);
     if (!existing) throw new NotFoundError("Article not found");
 
     const blocks = normalizeContent(existing.content);
     const urls = collectImageUrls(blocks, existing.heroImageUrl);
-    await ArticleRepository.delete(id);
-    await Promise.all(urls.map((url) => storageService.deleteFile(url)));
-    return { id, deleted: true };
+    await ArticleRepository.hardDelete(id);
+    await Promise.all(
+      urls.map(async (url) => {
+        try {
+          await storageService.deleteFile(url);
+        } catch (err) {
+          console.warn(`[ArticleService] Failed to delete image ${url}:`, err);
+        }
+      }),
+    );
+    return {
+      id,
+      hardDeleted: true,
+      message: "Article permanently deleted from database and storage",
+    };
+  },
+
+  async delete(
+    currentUser: CurrentUser,
+    id: string,
+    options?: { type?: "soft" | "hard" },
+  ) {
+    assertSuperuser(currentUser);
+    if (options?.type === "hard") {
+      return this.hardDelete(currentUser, id);
+    }
+    return this.softDelete(currentUser, id);
   },
 };
