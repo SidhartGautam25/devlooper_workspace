@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2, X } from "lucide-react";
 import { useAdminUser } from "@/components/admin/admin-user-context";
 import { ArticlePreview } from "@/components/admin/articles/article-preview";
 import { ParagraphEditor } from "@/components/admin/articles/paragraph-editor";
@@ -83,6 +84,12 @@ function ArticleEditorForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [newStack, setNewStack] = useState("");
+  const [saveModal, setSaveModal] = useState<{
+    isOpen: boolean;
+    status: "success" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
 
   const relatedOptions = useMemo(
     () => articles.filter((article) => article.id !== articleId),
@@ -107,6 +114,52 @@ function ArticleEditorForm({
     });
   }
 
+  function addHeading() {
+    setBlocks((current) => [
+      ...current,
+      {
+        id: createBlockId(),
+        type: "heading",
+        level: 2,
+        text: "",
+        tocLabel: "",
+      },
+    ]);
+  }
+
+  function addText() {
+    setBlocks((current) => [
+      ...current,
+      { id: createBlockId(), type: "paragraph", html: "" },
+    ]);
+  }
+
+  function addCode() {
+    setBlocks((current) => [
+      ...current,
+      {
+        id: createBlockId(),
+        type: "code",
+        language: "typescript",
+        code: "",
+      },
+    ]);
+  }
+
+  function addImage() {
+    setBlocks((current) => [
+      ...current,
+      {
+        id: createBlockId(),
+        type: "image",
+        url: "",
+        alt: "",
+        caption: "",
+        size: "default",
+      },
+    ]);
+  }
+
   async function onSave() {
     setError(null);
     try {
@@ -125,11 +178,31 @@ function ArticleEditorForm({
           relatedIds,
         },
       });
+
+      setSaveModal({
+        isOpen: true,
+        status: "success",
+        title: "Article Saved Successfully!",
+        message: articleId
+          ? "All article changes and content blocks have been saved to the database."
+          : "Your new article has been created and saved successfully.",
+      });
+
       if (!articleId) {
-        router.replace(`/admin/articles/${saved.id}`);
+        setTimeout(() => {
+          router.replace(`/admin/articles/${saved.id}`);
+        }, 1200);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save article");
+      const errorMsg =
+        err instanceof Error ? err.message : "Unable to save article";
+      setError(errorMsg);
+      setSaveModal({
+        isOpen: true,
+        status: "error",
+        title: "Failed to Save Article",
+        message: errorMsg,
+      });
     }
   }
 
@@ -312,62 +385,18 @@ function ArticleEditorForm({
           </fieldset>
         </div>
 
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <AddBlockButton
-              label="Heading"
-              onClick={() =>
-                setBlocks((current) => [
-                  ...current,
-                  {
-                    id: createBlockId(),
-                    type: "heading",
-                    level: 2,
-                    text: "",
-                    tocLabel: "",
-                  },
-                ])
-              }
-            />
-            <AddBlockButton
-              label="Text"
-              onClick={() =>
-                setBlocks((current) => [
-                  ...current,
-                  { id: createBlockId(), type: "paragraph", html: "" },
-                ])
-              }
-            />
-            <AddBlockButton
-              label="Code"
-              onClick={() =>
-                setBlocks((current) => [
-                  ...current,
-                  {
-                    id: createBlockId(),
-                    type: "code",
-                    language: "typescript",
-                    code: "",
-                  },
-                ])
-              }
-            />
-            <AddBlockButton
-              label="Image"
-              onClick={() =>
-                setBlocks((current) => [
-                  ...current,
-                  {
-                    id: createBlockId(),
-                    type: "image",
-                    url: "",
-                    alt: "",
-                    caption: "",
-                    size: "default",
-                  },
-                ])
-              }
-            />
+        <div className="space-y-4">
+          {/* Sticky Toolbar for effortless access without scrolling up and down */}
+          <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-700/80 bg-slate-900/95 p-2.5 shadow-xl backdrop-blur-md">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Add Block:
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <AddBlockButton label="Heading" onClick={addHeading} />
+              <AddBlockButton label="Text" onClick={addText} />
+              <AddBlockButton label="Code" onClick={addCode} />
+              <AddBlockButton label="Image" onClick={addImage} />
+            </div>
           </div>
 
           {blocks.map((block, index) => (
@@ -584,6 +613,19 @@ function ArticleEditorForm({
               ) : null}
             </div>
           ))}
+
+          {/* Bottom Bar: directly at the end of article blocks */}
+          <div className="flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-slate-800 bg-slate-900/40 p-4 text-center">
+            <p className="text-xs font-medium text-slate-400">
+              Add next block to the end of your article:
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <AddBlockButton label="Heading" onClick={addHeading} />
+              <AddBlockButton label="Text" onClick={addText} />
+              <AddBlockButton label="Code" onClick={addCode} />
+              <AddBlockButton label="Image" onClick={addImage} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -605,6 +647,73 @@ function ArticleEditorForm({
             .map((article) => ({ id: article.id, title: article.title }))}
         />
       </div>
+
+      {/* Save Status Feedback Popup Modal */}
+      {saveModal?.isOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-[#0F172A] p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setSaveModal(null)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-white"
+              title="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div
+                className={`mb-4 flex h-14 w-14 items-center justify-center rounded-full border ${
+                  saveModal.status === "success"
+                    ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
+                    : "border-rose-500/30 bg-rose-500/20 text-rose-400"
+                }`}
+              >
+                {saveModal.status === "success" ? (
+                  <CheckCircle2 className="h-8 w-8" />
+                ) : (
+                  <AlertCircle className="h-8 w-8" />
+                )}
+              </div>
+
+              <h3 className="text-xl font-semibold text-white">
+                {saveModal.title}
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-300">{saveModal.message}</p>
+
+              {saveModal.status === "success" ? (
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-800/80 px-3 py-1.5 text-xs text-slate-300">
+                  <span>Status:</span>
+                  <span
+                    className={`font-semibold ${
+                      status === "PUBLISHED"
+                        ? "text-emerald-400"
+                        : "text-amber-400"
+                    }`}
+                  >
+                    {status}
+                  </span>
+                </div>
+              ) : null}
+
+              <div className="mt-6 flex w-full gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSaveModal(null)}
+                  className={`w-full rounded-xl py-2.5 text-sm font-medium transition ${
+                    saveModal.status === "success"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-500"
+                      : "bg-rose-600 text-white hover:bg-rose-500"
+                  }`}
+                >
+                  {saveModal.status === "success" ? "Got it" : "Close & Review"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -620,8 +729,9 @@ function AddBlockButton({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-700 hover:text-white"
     >
+      <span className="font-bold text-indigo-400">+</span>
       Add {label}
     </button>
   );
