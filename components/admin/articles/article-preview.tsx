@@ -184,7 +184,7 @@ export function ArticlePreview({
               return (
                 <div
                   key={block.id}
-                  className="leading-7 text-slate-200 [&_u]:underline whitespace-pre-wrap break-words"
+                  className="font-serif text-[17.5px] leading-[1.8] text-[#d8dee9] whitespace-pre-wrap break-words tracking-[0.01em] [&_em]:italic [&_strong]:font-bold [&_u]:underline [&_u]:underline-offset-[5px] [&_u]:decoration-[1.5px] [&_a]:text-[#ffa7c4] [&_a]:underline [&_a]:underline-offset-[5px] [&_a]:decoration-[1.5px] [&_a]:decoration-[#ffa7c4]/70 hover:[&_a]:decoration-[#ffa7c4] hover:[&_a]:text-[#ff80a5] [&_code]:font-mono [&_code]:text-[0.88em] [&_code]:rounded [&_code]:bg-[#1e232a] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[#ffa7c4]"
                   dangerouslySetInnerHTML={{ __html: block.html || "" }}
                 />
               );

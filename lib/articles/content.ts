@@ -83,7 +83,7 @@ export function sanitizeParagraphHtml(html: string) {
     .replace(/<\/?(script|style|iframe|object|embed)[^>]*>/gi, "")
     .replace(/on\w+="[^"]*"/gi, "")
     .replace(/on\w+='[^']*'/gi, "")
-    .replace(/javascript:/gi, "");
+    .replace(/href\s*=\s*["']?javascript:[^"'>]*["']?/gi, 'href="#"');
 
   // Normalize paragraph and div breaks into <br> tags so newlines and gaps are never lost
   clean = clean
@@ -96,8 +96,11 @@ export function sanitizeParagraphHtml(html: string) {
     .replace(/<p>/gi, "<br>")
     .replace(/<\/p>|<\/div>/gi, "");
 
-  // Allow only safe formatting tags: mark, u, strong, em, b, i, br, span
-  clean = clean.replace(/<(?!\/?(mark|u|strong|em|b|i|br|span)\b)[^>]*>/gi, "");
+  // Allow only safe formatting tags: mark, u, strong, em, b, i, br, span, a
+  clean = clean.replace(
+    /<(?!\/?(mark|u|strong|em|b|i|br|span|a)\b)[^>]*>/gi,
+    "",
+  );
 
   // Clean initial leading <br> if the content was wrapped in an outer div
   clean = clean.replace(/^<br\s*\/?>+/i, "");
