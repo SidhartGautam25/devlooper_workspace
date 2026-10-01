@@ -4,13 +4,15 @@ import { useEffect, useRef, type MouseEvent } from "react";
 import { Link as LinkIcon, Unlink } from "lucide-react";
 
 const TEXT_SIZES = [
-  { label: "13px (Small)", value: "13px" },
-  { label: "15px (Compact)", value: "15px" },
-  { label: "17.5px (Base)", value: "17.5px" },
-  { label: "20px (Lead)", value: "20px" },
-  { label: "24px (Large)", value: "24px" },
-  { label: "28px (Title)", value: "28px" },
-  { label: "32px (Display)", value: "32px" },
+  { label: "15px", value: "15px" },
+  { label: "17.5px", value: "17.5px" },
+  { label: "18px", value: "18px" },
+  { label: "18.5px", value: "18.5px" },
+  { label: "19px", value: "19px" },
+  { label: "20px", value: "20px" },
+  { label: "22px", value: "22px" },
+  { label: "24px", value: "24px" },
+  { label: "25px", value: "25px" },
 ];
 
 const FONT_WEIGHTS = [
